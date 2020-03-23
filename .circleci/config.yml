@@ -35,7 +35,7 @@ jobs:
 
                 mv _static static
                 for file in ./**/*.html; do
-                    cat $file | sed 's/_static/static/g' > $file_
+                    cat $file | sed 's/_static/static/g' > ${file}_
                     mv $file_ $file
                 done
 
