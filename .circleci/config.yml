@@ -28,8 +28,9 @@ jobs:
                 cd docs
                 sphinx-build . build
                 cd ..
-                mkdir ../.docs
+                mkdir -p ../.docs/.circleci
                 cp -r docs/build/* ../.docs/
+                cp -r .circleci/* ../.docs/.circleci/
                 cd ../.docs
 
                 mv _static static
