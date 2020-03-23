@@ -34,8 +34,10 @@ jobs:
                 cd ../.docs
 
                 mv _static static
-                cat index.html | sed 's/_static/static/g' > _index.html
-                mv _index.html index.html
+                for file in ./**/*.html; do
+                    cat $file | sed 's/_static/static/g' > $file_
+                    mv $file_ $file
+                done
 
                 git init
                 git config user.name "circleci"
