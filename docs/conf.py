@@ -2,8 +2,8 @@ import datetime
 import pycave
 
 project = 'PyCave'
-# version = pycave.__version__ # pylint: disable=no-member
-# release = pycave.__version__ # pylint: disable=no-member
+version = pycave.__version__ # pylint: disable=no-member
+release = pycave.__version__ # pylint: disable=no-member
 
 author = 'Oliver Borchert'
 copyright = f'{datetime.datetime.now().year}, {author}' # pylint: disable=redefined-builtin
