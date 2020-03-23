@@ -34,7 +34,7 @@ jobs:
                 cd ../.docs
 
                 mv _static static
-                for file in ./**/*.html; do
+                for file in $(find . -name '*.html'); do
                     sed -i 's/_static/static/g' $file
                 done
 
