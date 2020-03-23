@@ -11,19 +11,29 @@ from .utils import log_normal, log_responsibilities, max_likeli_means, max_likel
 
 class GMMConfig(xnn.Config):
     """
-    The GMM config can be used to customize the Gaussian mixture model.
+    The GMM config can be used to customize the Gaussian mixture model. Values that do not have a
+    default value must be passed to the initializer of the GMM.
     """
 
-    # The number of gaussian distributions that make up the GMM.
     num_components: int
+    """
+    The number of gaussian distributions that make up the GMM.
+    """
 
-    # The dimensionality of the gaussian distributions.
     num_features: int
+    """
+    The dimensionality of the gaussian distributions.
+    """
 
-    # The type of covariance to use for the gaussian distributions.
     covariance: str = 'diag'
+    """
+    The type of covariance to use for the gaussian distributions. Must be one of:
 
-    # MARK: Private Methods
+    * diag: Diagonal covariance for every component (parameters: `num_features * num_components`).
+    * spherical: Spherical covariance for every component (parameters: `num_components`).
+    * diag-shared: Shared diagonal covariance for all components (parameters: `num_features`).
+    """
+
     def is_valid(self):
         return (
             self.covariance in ('diag', 'spherical', 'diag-shared')
@@ -32,15 +42,19 @@ class GMMConfig(xnn.Config):
 # pylint: disable=abstract-method
 class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
     """
-    The GMM represents mixture of a fixed number of multivariate gaussian distributions. This class
-    may be used to find clusters whenever you expect data to be generated from a (fixed-size) set
-    of gaussian distributions.
+    The GMM represents a mixture of a fixed number of multivariate gaussian distributions. This
+    class may be used to find clusters whenever you expect data to be generated from a (fixed-size)
+    set of gaussian distributions.
     """
 
     __config__ = GMMConfig
 
     # MARK: Initialization
     def __init__(self, *args, **kwargs):
+        """
+        Initializes a new GMM either with a given `GMMConfig` or with the config's parameters passed
+        as keyword arguments.
+        """
         super().__init__(*args, **kwargs)
 
         self.component_weights = nn.Parameter(
@@ -75,14 +89,14 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
         means are initialized randomly from a gaussian distribution, unit covariances are used and
         prior probabilities are assigned randomly using a uniform distribution.
 
-        Parameters:
-        -----------
-        - data: torch.Tensor [N, D], default: None
+        Parameters
+        ----------
+        data: torch.Tensor [N, D], default: None
             An optional set of datapoints to initialize the means and covariances of the gaussian
             distributions from. K-Means will be run to find the means and the datapoints belonging
             to a respective cluster are used to estimate the covariance. Note that the given data
             may be a (small) subset on the actual data that the GMM should be fitted on.
-        - max_iter: int, default: 100
+        max_iter: int, default: 100
             If data is given and K-Means is run, this defines the maximum number of iterations to
             run K-Means for.
         """
@@ -130,29 +144,29 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
         expectation-maximization for optimizing the parameters. Consider running `reset_parameters`
         on (a subset of) the data first to achieve better results.
 
-        Parameters:
-        -----------
-        - data: torch.Tensor [N, D]
+        Parameters
+        ----------
+        data: torch.Tensor [N, D]
             The data to train the model on. The data does not need to be passed to the GPU when
             training on mini-batches (i.e. `batch_size` is given). If the model itself resides on
             the GPU, it will take care of moving the required data to the GPU step by step,
             enabling training on data that is larger than the memory of the GPU. In case the model
             is trained without mini-batches, the data needs to be on the same device as the model.
-        - max_iter: int, default: 100
+        max_iter: int, default: 100
             The maximum number of iterations to run the EM-algorithm for.
-        - batch_size: int, default: None
+        batch_size: int, default: None
             The batch size to use for training. If `None` is given, we do not uses batches.
-        - eps: float, default: 1e-7
+        eps: float, default: 1e-7
             The difference in the log-likelihood (per datapoint) after which to stop the
             EM-algorithm before running `max_iter` iterations. The default value works well for
             reasonably large datasets (~10 million datapoins) but might be set to an even smaller
             value for even larger datasets.
-        - verbose: bool, default: False
+        verbose: bool, default: False
             Whether to show a progress bar during training.
 
-        Returns:
-        --------
-        - bxtorch.nn.History
+        Returns
+        -------
+        bxtorch.nn.History
             A history object containing the negative log-likelihoods over the course of the
             EM-training.
         """
@@ -164,7 +178,7 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
             num_batches = 1
         else:
             num_batches = int(math.ceil(data.size(0) / batch_size))
-        weights = torch.ones(num_batches) # on CPU
+        weights = torch.ones(num_batches)
 
         # 1.1) Adjust weight of last batch
         if batch_size is not None:
@@ -207,18 +221,18 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
         Computes the negative log-likelihood of the given data (normalized by the number of
         datapoints).
 
-        Parameters:
-        -----------
-        - data: torch.Tensor [N, D]
+        Parameters
+        ----------
+        data: torch.Tensor [N, D]
             The data to compute the log-likelihood for.
-        - return_responsibilities: bool, default: False
+        return_responsibilities: bool, default: False
             Whether to return the responsibilities for the datapoints and each component.
 
-        Returns:
-        --------
-        - float
+        Returns
+        -------
+        float
             The per-datapoint negative log-likelihood.
-        - torch.Tensor [N, K]
+        torch.Tensor [N, K]
             The responsibilities when `return_responsibilities` is set.
         """
         probs = log_normal(data, self.means, self.covars)
@@ -235,16 +249,16 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
         """
         Predicts the most likely components for the given data.
 
-        Parameters:
-        -----------
-        - data: torch.Tensor [..., D]
+        Parameters
+        ----------
+        data: torch.Tensor [..., D]
             The data for which to compute the most likely components that they were generated from.
             The size is arbitrary, only the last dimension must be the same as the dimensionality
             of the gaussian distributions.
 
-        Returns:
-        --------
-        - torch.Tensor [...]
+        Returns
+        -------
+        torch.Tensor [...]
             The indices of the most likely components. The shape is the same as of the given data,
             except for the last dimension.
         """
@@ -260,18 +274,18 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
         """
         Samples a given number of samples from the GMM.
 
-        Parameters:
-        -----------
-        - n: int
+        Parameters
+        ----------
+        n: int
             The number of samples to generate.
-        - return_components: bool, default: False
+        return_components: bool, default: False
             Whether to return the indices of the components from which the samples were obtained.
 
-        Returns:
-        --------
-        - torch.Tensor [N, D]
+        Returns
+        -------
+        torch.Tensor [N, D]
             The samples with dimensionality D.
-        - torch.Tensor [N]
+        torch.Tensor [N]
             Optionally, the indices of the components corresponding to the returned samples.
         """
         # 1) Sample components

@@ -10,11 +10,15 @@ class MarkovModelConfig(xnn.Config):
     The Markov model config can be used to customize the Markov model.
     """
 
-    # The number of states in the Markov model.
     num_states: int
+    """
+    The number of states in the Markov model.
+    """
 
-    # Whether to use a symmetric transition probability matrix.
     symmetric: bool = False
+    """
+    Whether to use a symmetric transition probability matrix.
+    """
 
 
 # pylint: disable=abstract-method
@@ -29,6 +33,10 @@ class MarkovModel(xnn.Configurable, xnn.Estimator, nn.Module):
 
     # MARK: Initialization
     def __init__(self, *args, **kwargs):
+        """
+        Initializes a new Markov model by passing a `MarkovModelConfig` or the config's
+        configuration parameters as keyword arguments.
+        """
         super().__init__(*args, **kwargs)
 
         self.initial_probs = nn.Parameter(
@@ -58,18 +66,18 @@ class MarkovModel(xnn.Configurable, xnn.Estimator, nn.Module):
         """
         Optimizes the parameters of the markov model from the given sequences.
 
-        Parameters:
-        -----------
-        - sequences: torch.Tensor [N, S]
+        Parameters
+        ----------
+        sequences: torch.Tensor [N, S]
             N sequences to train the Markov model on. The sequences are expected to be of uniform
             length S. Each value of the tensor must be the index of a state.
-        - teleport_alpha: float, default: 0
+        teleport_alpha: float, default: 0
             The probability of "invalid" transitions in the given sequences. This setting is
             motivated by a random walker which teleports after every step with probability alpha.
 
-        Returns:
-        --------
-        - bxtorch.nn.History
+        Returns
+        -------
+        bxtorch.nn.History
             For completeness, it returns a history object. However, apart from the duration of the
             training, the object does not carry any information.
         """
@@ -103,14 +111,14 @@ class MarkovModel(xnn.Configurable, xnn.Estimator, nn.Module):
         Computes the negative log-likelihood of observing the given sequences under this stochastic
         model.
 
-        Parameters:
-        -----------
-        - sequences: torch.Tensor [N, S]
+        Parameters
+        ----------
+        sequences: torch.Tensor [N, S]
             N sequences of S states.
 
-        Returns:
-        --------
-        - float
+        Returns
+        -------
+        float
             The negative log-likelihood divided by the number of sequences.
         """
         initial_log_probs = self.initial_probs[sequences[:, 0]].log()
@@ -132,16 +140,16 @@ class MarkovModel(xnn.Configurable, xnn.Estimator, nn.Module):
         Samples the given number of sequences with the given length from the model's underlying
         probability distribution.
 
-        Parameters:
-        -----------
-        - num_sequences: int
+        Parameters
+        ----------
+        num_sequences: int
             The number N of sequences to sample.
-        - sequence_length: int
+        sequence_length: int
             The length S of the sequences to sample.
 
-        Returns:
-        --------
-        - torch.Tensor [N, S]
+        Returns
+        -------
+        torch.Tensor [N, S]
             The N state sequences of length S.
         """
         samples = torch.empty(num_sequences, sequence_length, dtype=torch.long)
@@ -164,14 +172,14 @@ class MarkovModel(xnn.Configurable, xnn.Estimator, nn.Module):
         Computes the stationary distribution of the Markov chain. This equals the eigenvector
         corresponding to the largest eigenvalue of the transposed transition matrix.
 
-        Parameters:
-        -----------
-        - max_iterations: int, default: 100
+        Parameters
+        ----------
+        max_iterations: int, default: 100
             The number of iterations to perform for the power iteration.
 
-        Returns:
-        --------
-        - torch.Tensor [N]
+        Returns
+        -------
+        torch.Tensor [N]
             The probability of a random walker visiting each of the states after infinitely many
             steps.
         """

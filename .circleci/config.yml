@@ -3,18 +3,39 @@ version: 2.1
 jobs:
     lint-code:
         docker:
-        -   image: borchero/pycave:$CIRCLE_BRANCH
+        -   image: borchero/pycave:latest
         steps:
         -   checkout
         -   run: pylint pycave
 
     deploy-to-pypi:
         docker:
-        -   image: borchero/pycave:$CIRCLE_BRANCH
+        -   image: borchero/pycave:latest
         steps:
         -   checkout
         -   run: python setup.py sdist bdist_wheel
         -   run: twine upload dist/*
+
+    generate-docs:
+        docker:
+        -   image: borchero/pycave:latest
+        steps:
+        -   checkout
+        -   run: |
+                cd docs
+                sphinx-build . build
+                cd ..
+        -   run: |
+                mkdir ../.docs
+                cp -r docs/build/* ../.docs/
+                cd ../.docs
+        -   run: |
+                git init
+                git config user.name "circleci"
+                git config user.email "noreply@borchero.com"
+                git add .
+                git commit -m "Update Sphinx Docs"
+                git push $CIRCLE_REPOSITORY_URL master:gh-pages
 
 workflows:
     version: 2
@@ -25,6 +46,12 @@ workflows:
     cd-workflow:
         jobs:
         -   deploy-to-pypi:
+                filters:
+                    branches:
+                        ignore: /.*/
+                    tags:
+                        only: /.*/
+        -   generate-docs:
                 filters:
                     branches:
                         ignore: /.*/

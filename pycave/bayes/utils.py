@@ -6,13 +6,13 @@ def log_normal(x, means, covars):
     Computes the log-probability of the given data for multiple multivariate normal distributions
     defined by their means and covariances.
 
-    Parameters:
-    -----------
-    - x: torch.Tensor [N, D]
+    Parameters
+    ----------
+    x: torch.Tensor [N, D]
         The data to compute the log-probability for.
-    - means: torch.Tensor [K, D]
+    means: torch.Tensor [K, D]
         The means of the distributions.
-    - covars: torch.Tensor ([K, D] or [D] or [K])
+    covars: torch.Tensor ([K, D] or [D] or [K])
         The covariances of the distributions, depending on the covariance type. In the first case,
         each distribution is assumed to have its own diagonal covariance matrix, in the second case,
         the covariance matrix is shared among all distributions, and in the last one, the
@@ -20,9 +20,9 @@ def log_normal(x, means, covars):
         the input. If the dimension does not fit any of the documented sizes, no error will be
         thrown but the result is undefined.
 
-    Returns:
-    --------
-    - torch.Tensor [N, K]
+    Returns
+    -------
+    torch.Tensor [N, K]
         The log-probabilities for every input and distribution.
     """
     num_features = x.size(1)
@@ -53,25 +53,24 @@ def log_normal(x, means, covars):
 
 def log_responsibilities(log_probs, comp_priors, return_log_likelihood=False):
     """
-    Computes the log-responsibilities of some data based on their log-
-    probabilities for all components of a gaussian mixture model and the
-    components' weights.
+    Computes the log-responsibilities of some data based on their log-probabilities for all
+    components of a gaussian mixture model and the components' weights.
 
-    Parameters:
-    -----------
-    - log_probs: torch.Tensor [N, K]
+    Parameters
+    ----------
+    log_probs: torch.Tensor [N, K]
         The log-probabilities of N datapoints for each of K distributions.
-    - comp_priors: torch.Tensor [K]
+    comp_priors: torch.Tensor [K]
         The prior probabilities for each of the K distributions.
-    - return_log_likelihood: bool, default: False
+    return_log_likelihood: bool, default: False
         Whether to return the log-likelihood of observing the data given the log-probabilities and
         the component priors.
 
-    Returns:
-    --------
-    - torch.Tensor [N, K]
+    Returns
+    -------
+    torch.Tensor [N, K]
         The log-responsibilities for all datapoints and distributions.
-    - torch.Tensor [N]
+    torch.Tensor [N]
         If `return_log_likelihood` is `True`, the log-likelihood of observing each of the
         datapoints ("evidence"). To compute the log-likelihood of the entire data, sum these
         log-likelihoods up.
@@ -89,19 +88,19 @@ def max_likeli_means(data, responsibilities, comp_sums=None):
     """
     Maximizes the likelihood of the data with respect to the means for a gaussian mixture model.
 
-    Parameters:
-    -----------
-    - data: torch.Tensor [N, D]
+    Parameters
+    ----------
+    data: torch.Tensor [N, D]
         The data for which to maximize the likelihood.
-    - responsibilities: torch.Tensor [N, K]
+    responsibilities: torch.Tensor [N, K]
         The responsibilities for each datapoint and component.
-    - comp_sums: torch.Tensor [K], default: None
+    comp_sums: torch.Tensor [K], default: None
         The cumulative probabilities for all components. If not given, this method can be used for
         e.g. implementing mini-batch GMM. The means are not at all normalized.
 
-    Returns:
-    --------
-    - torch.Tensor [K, D]
+    Returns
+    -------
+    torch.Tensor [K, D]
         The likelihood-maximizing means.
     """
     means = torch.matmul(responsibilities.t(), data)
@@ -115,25 +114,25 @@ def max_likeli_covars(data, responsibilities, comp_sums, means, covar_type, reg=
     Maximizes the likelihood of the data with respect to the covariances for a gaussian mixture
     model.
 
-    Parameters:
-    -----------
-    - data: torch.Tensor [N, D]
+    Parameters
+    ----------
+    data: torch.Tensor [N, D]
         The data for which to maximize the likelihood.
-    - responsibilities: torch.Tensor [N, K]
+    responsibilities: torch.Tensor [N, K]
         The responsibilities for each datapoint and component.
-    - comp_sums: torch.Tensor [K]
+    comp_sums: torch.Tensor [K]
         The cumulative probabilities for all components.
-    - means: torch.Tensor [K, D]
+    means: torch.Tensor [K, D]
         The means of all components.
-    - covar_type: str
+    covar_type: str
         The type of the covariance to maximize the likelihood for. Must be one of ('diag',
         'diag-shared', 'spherical').
-    - reg: float, default: 1e-6
+    reg: float, default: 1e-6
         Regularization term added to the covariance to ensure that it is positive.
 
-    Returns:
-    --------
-    - torch.Tensor ([K, D] or [D] or [K])
+    Returns
+    -------
+    torch.Tensor ([K, D] or [D] or [K])
         The likelihood-maximizing covariances where the shape depends on the given covariance type.
 
     Note:
@@ -165,21 +164,21 @@ def power_iteration(A, eps=1e-7, max_iterations=100):
     """
     Computes the eigenvector corresponding to the largest eigenvalue of the given square matrix.
 
-    Parameters:
-    -----------
-    - A: torch.Tensor [N, N]
+    Parameters
+    ----------
+    A: torch.Tensor [N, N]
         The square matrix for which to compute the eigenvector corresponding to the largest
         eigenvalue.
-    - eps: float, default: 1e-7
+    eps: float, default: 1e-7
         Convergence criterion. When the change in the vector norm is less than the given value,
         iteration is stopped.
-    - max_iterations: int, default: 100
+    max_iterations: int, default: 100
         The maximum number of iterations to do when the epsilon-based convergence criterion does
         not kick in.
 
-    Returns:
-    --------
-    - torch.Tensor [N]
+    Returns
+    -------
+    torch.Tensor [N]
         The eigenvector corresponding to the largest eigenvalue of the given square matrix.
     """
     v = torch.rand(A.size(0), device=A.device)
