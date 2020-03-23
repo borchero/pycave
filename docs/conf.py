@@ -2,8 +2,8 @@ import datetime
 import os
 
 project = 'PyCave'
-version = os.getenv('CIRCLE_TAG')
-release = os.getenv('CIRCLE_TAG')
+version = os.getenv('CIRCLE_TAG', '0.0.0')
+release = os.getenv('CIRCLE_TAG', '0.0.0')
 
 author = 'Oliver Borchert'
 copyright = f'{datetime.datetime.now().year}, {author}' # pylint: disable=redefined-builtin
