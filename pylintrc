@@ -1,0 +1,23 @@
+[Master]
+jobs = 0
+
+[MESSAGES CONTROL]
+disable=
+    missing-module-docstring,
+    invalid-name,
+    cyclic-import,
+    too-many-arguments,
+    too-many-locals,
+    no-self-use,
+    too-many-instance-attributes,
+    too-few-public-methods,
+    too-many-statements,
+    arguments-differ,
+    too-many-return-statements,
+    unsubscriptable-object
+
+[TYPECHECK]
+generated-members=
+    numpy.*,
+    torch.*,
+    numpy.random.*
