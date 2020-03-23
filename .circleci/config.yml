@@ -21,7 +21,10 @@ jobs:
         -   image: borchero/pycave:latest
         steps:
         -   checkout
-        -   run: pip install pycave==$CIRCLE_TAG
+        -   run: |
+                sleep 5
+                pip install pycave==$CIRCLE_TAG || pip install pycave==$CIRCLE_TAG
+        -   run: |
                 cd docs
                 sphinx-build . build
                 cd ..
