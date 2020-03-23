@@ -22,15 +22,12 @@ jobs:
         steps:
         -   checkout
         -   run: pip install pycave==$CIRCLE_TAG
-        -   run: |
                 cd docs
                 sphinx-build . build
                 cd ..
-        -   run: |
                 mkdir ../.docs
                 cp -r docs/build/* ../.docs/
                 cd ../.docs
-        -   run: |
                 git init
                 git config user.name "circleci"
                 git config user.email "noreply@borchero.com"
