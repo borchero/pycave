@@ -1,7 +1,7 @@
-version: 2
+version: 2.1
+
 jobs:
-    build:
-        type: approval
+    build-docker:
         machine:
             image: ubuntu-1604:201903-01
         steps:
@@ -9,3 +9,35 @@ jobs:
         -   run: echo "$DOCKER_PASS" | docker login --username "$DOCKER_USER" --password-stdin
         -   run: docker build -t borchero/pycave:$CIRCLE_BRANCH .
         -   run: docker push borchero/pycave:$CIRCLE_BRANCH
+
+    lint-code:
+        docker:
+        -   image: borchero/pycave:$CIRCLE_BRANCH
+        steps:
+        -   checkout
+        -   run: pylint pycave
+
+    deploy-to-pypi:
+        docker:
+        -   image: borchero/pycave:$CIRCLE_BRANCH
+        steps:
+        -   checkout
+        -   run: python setup.py sdist bdist_wheel
+        -   run: twine upload dist/*
+
+workflows:
+    version: 2
+    build-docker-workflow:
+        jobs:
+        -   build-docker:
+                type: approval
+
+    ci-workflow:
+        jobs:
+        -   lint-code
+
+    cd-workflow:
+        jobs:
+        -   deploy-to-pypi:
+                filters:
+                    tags:

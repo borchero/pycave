@@ -1,3 +1,4 @@
+import os
 from setuptools import setup, find_packages
 
 with open('README.md', 'r') as f:
@@ -8,7 +9,7 @@ with open('requirements.txt', 'r') as f:
 
 setup(
     name='pycave',
-    version='${CI_COMMIT_TAG}',
+    version=os.getenv('CIRCLE_TAG'),
 
     author='Oliver Borchert',
     author_email='borchero@icloud.com',
