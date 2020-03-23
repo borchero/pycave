@@ -1,0 +1,11 @@
+version: 2
+jobs:
+    build-docker:
+        type: approval
+        machine:
+            image: ubuntu-1604:201903-01
+        steps:
+        -   checkout
+        -   run: echo "$DOCKER_PASS" | docker login --username "$DOCKER_USER" --password-stdin
+        -   run: docker build -t borchero/pycave:$CIRCLE_BRANCH .
+        -   run: docker push borchero/pycave:$CIRCLE_BRANCH
