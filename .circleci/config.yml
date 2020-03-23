@@ -21,6 +21,7 @@ jobs:
         -   image: borchero/pycave:latest
         steps:
         -   checkout
+        -   run: pip install pycave==$CIRCLE_TAG
         -   run: |
                 cd docs
                 sphinx-build . build
@@ -52,6 +53,8 @@ workflows:
                     tags:
                         only: /.*/
         -   generate-docs:
+                requires: 
+                -   deploy-to-pypi
                 filters:
                     branches:
                         ignore: /.*/
