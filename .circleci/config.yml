@@ -39,6 +39,7 @@ jobs:
                 at: ~/
         -   run: |
                 cd ~/project/docs
+                cuckoo auth
                 cuckoo publish \
                     --dir build \
                     --bucket pycave.borchero.com \
