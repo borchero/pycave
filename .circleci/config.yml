@@ -35,7 +35,7 @@ jobs:
         docker:
         -   image: borchero/cuckoo:0.4.0
         steps:
-        -   attack_workspace:
+        -   attach_workspace:
                 at: ~/
         -   run: |
                 cd ~/project/docs
