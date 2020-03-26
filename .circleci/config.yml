@@ -24,26 +24,26 @@ jobs:
         -   run: |
                 sleep 5
                 pip install pycave==$CIRCLE_TAG || pip install pycave==$CIRCLE_TAG
-        -   run: |
                 cd docs
                 sphinx-build . build
-                cd ..
-                mkdir -p ../.docs/.circleci
-                cp -r docs/build/* ../.docs/
-                cp -r .circleci/* ../.docs/.circleci/
-                cd ../.docs
+        -   persist_to_workspace:
+                root: ~/
+                paths:
+                -   project/docs/build
 
-                mv _static static
-                for file in $(find . -name '*.html'); do
-                    sed -i 's/_static/static/g' $file
-                done
-
-                git init
-                git config user.name "circleci"
-                git config user.email "noreply@borchero.com"
-                git add .
-                git commit -m "Update Sphinx Docs"
-                git push --force $CIRCLE_REPOSITORY_URL master:gh-pages
+    deploy-docs:
+        docker:
+        -   image: borchero/cuckoo:0.4.0
+        steps:
+        -   attack_workspace:
+                at: ~/
+        -   run: |
+                cd ~/project/docs
+                cuckoo publish \
+                    --dir build \
+                    --bucket pycave.borchero.com \
+                    --purge \
+                    --aws-cloudfront-distribution E1AM33MDA9XIGD
 
 workflows:
     version: 2
@@ -65,6 +65,14 @@ workflows:
         -   generate-docs:
                 requires: 
                 -   deploy-to-pypi
+                filters:
+                    branches:
+                        ignore: /.*/
+                    tags:
+                        only: /.*/
+        -   deploy-docs:
+                requires:
+                -   generate-docs
                 filters:
                     branches:
                         ignore: /.*/
