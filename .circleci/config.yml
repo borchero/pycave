@@ -43,7 +43,6 @@ jobs:
                 cuckoo publish \
                     --dir build \
                     --bucket pycave.borchero.com \
-                    --purge \
                     --aws-cloudfront-distribution E1AM33MDA9XIGD
 
 workflows:
