@@ -50,10 +50,7 @@ workflows:
     version: 2
     ci-workflow:
         jobs:
-        -   lint-code:
-                filters:
-                    branches:
-                        ignore: gh-pages
+        -   lint-code
 
     cd-workflow:
         jobs:
