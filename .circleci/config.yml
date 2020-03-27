@@ -33,7 +33,7 @@ jobs:
 
     deploy-docs:
         docker:
-        -   image: borchero/cuckoo:0.4.0
+        -   image: borchero/cuckoo:0.4.1
         steps:
         -   attach_workspace:
                 at: ~/
@@ -43,6 +43,7 @@ jobs:
                 cuckoo publish \
                     --dir build \
                     --bucket pycave.borchero.com \
+                    --purge \
                     --aws-cloudfront-distribution E1AM33MDA9XIGD
 
 workflows:
