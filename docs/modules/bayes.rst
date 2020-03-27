@@ -1,8 +1,6 @@
 Bayesian Models
 ===============
 
-Foobar
-
 .. contents::Contents
     :local:
 
