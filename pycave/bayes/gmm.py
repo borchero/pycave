@@ -3,11 +3,11 @@ import time
 import torch
 import torch.nn as nn
 import torch.distributions as dist
+from sklearn.cluster import KMeans
 import pyblaze.nn as xnn
 from pyblaze.utils.stdio import ProgressBar
-from pyblaze.utils.torch import to_one_hot
-from sklearn.cluster import KMeans
-from .utils import log_normal, log_responsibilities, max_likeli_means, max_likeli_covars
+from .utils import log_normal, log_responsibilities, max_likeli_means, max_likeli_covars, \
+    to_one_hot
 
 class GMMConfig(xnn.Config):
     """

@@ -193,3 +193,22 @@ def power_iteration(A, eps=1e-7, max_iterations=100):
             break
 
     return v
+
+
+def to_one_hot(X, n):
+    """
+    Creates a one-hot matrix from a set of indices.
+
+    Parameters:
+    -----------
+    - X: torch.Tensor [N, D]
+        The indices to convert into one-hot vectors.
+    - n: int
+        The number of entries in the one-hot vectors.
+
+    Returns:
+    --------
+    - torch.Tensor [N, D, n]
+        The one-hot matrix.
+    """
+    return torch.eye(n, device=X.device)[X]
