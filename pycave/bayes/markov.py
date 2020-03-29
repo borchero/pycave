@@ -2,7 +2,7 @@ import time
 import torch
 import torch.nn as nn
 import torch.distributions as dist
-import bxtorch.nn as xnn
+import pyblaze.nn as xnn
 from .utils import power_iteration
 
 class MarkovModelConfig(xnn.Config):
@@ -77,7 +77,7 @@ class MarkovModel(xnn.Configurable, xnn.Estimator, nn.Module):
 
         Returns
         -------
-        bxtorch.nn.History
+        pyblaze.nn.History
             For completeness, it returns a history object. However, apart from the duration of the
             training, the object does not carry any information.
         """

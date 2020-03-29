@@ -3,9 +3,9 @@ import time
 import torch
 import torch.nn as nn
 import torch.distributions as dist
-import bxtorch.nn as xnn
-from bxtorch.utils.stdio import ProgressBar
-from bxtorch.utils.torch import to_one_hot
+import pyblaze.nn as xnn
+from pyblaze.utils.stdio import ProgressBar
+from pyblaze.utils.torch import to_one_hot
 from sklearn.cluster import KMeans
 from .utils import log_normal, log_responsibilities, max_likeli_means, max_likeli_covars
 
@@ -166,7 +166,7 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
 
         Returns
         -------
-        bxtorch.nn.History
+        pyblaze.nn.History
             A history object containing the negative log-likelihoods over the course of the
             EM-training.
         """
