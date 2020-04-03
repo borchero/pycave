@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.distributions as dist
 from sklearn.mixture import GaussianMixture
-from pycave.bayes.utils import log_normal, log_responsibilities
+from pycave.bayes.utils import log_normal, log_responsibilities, packed_get_last, packed_drop_last
 
 class TestUtils(unittest.TestCase):
     """
@@ -33,8 +33,7 @@ class TestUtils(unittest.TestCase):
             for d in distributions:
                 e_item.append(d.log_prob(item))
             expected.append(e_item)
-        # pylint: disable=not-callable
-        expected = torch.tensor(expected)
+        expected = torch.as_tensor(expected)
 
         predicted = log_normal(x, means, covs)
 
@@ -65,8 +64,7 @@ class TestUtils(unittest.TestCase):
             for d in distributions:
                 e_item.append(d.log_prob(item))
             expected.append(e_item)
-        # pylint: disable=not-callable
-        expected = torch.tensor(expected)
+        expected = torch.as_tensor(expected)
 
         predicted = log_normal(x, means, covs)
 
@@ -98,8 +96,7 @@ class TestUtils(unittest.TestCase):
             for d in distributions:
                 e_item.append(d.log_prob(item))
             expected.append(e_item)
-        # pylint: disable=not-callable
-        expected = torch.tensor(expected)
+        expected = torch.as_tensor(expected)
 
         predicted = log_normal(x, means, covs)
 
@@ -135,6 +132,35 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(
             torch.allclose(expected, predicted, atol=1e-03, rtol=1e-05)
         )
+
+    def test_packed_get_last(self):
+        """
+        Tests whether the last item of packed sequences can be retrieved.
+        """
+        a = torch.as_tensor([1, 2, 3, 4])
+        b = torch.as_tensor([5, 6, 7])
+        c = torch.as_tensor([8, 9])
+        packed = torch.nn.utils.rnn.pack_sequence([a, b, c])
+
+        suffix = packed_get_last(packed.data, packed.batch_sizes)
+        expected = torch.as_tensor([4, 7, 9])
+
+        self.assertTrue(torch.all(suffix == expected))
+
+    def test_packed_drop_last(self):
+        """
+        Tests whether the last item of packed sequences can be dropped.
+        """
+        a = torch.as_tensor([1, 2, 3, 4])
+        b = torch.as_tensor([5, 6, 7])
+        c = torch.as_tensor([8, 9])
+        packed = torch.nn.utils.rnn.pack_sequence([a, b, c])
+
+        dropped = packed_drop_last(packed.data, packed.batch_sizes)
+        expected = torch.as_tensor([1, 5, 8, 2, 6, 3])
+
+        self.assertTrue(torch.all(dropped == expected))
+
 
 if __name__ == '__main__':
     unittest.main()

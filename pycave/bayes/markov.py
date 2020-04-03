@@ -143,27 +143,26 @@ class MarkovModel(xnn.Configurable, xnn.Estimator, nn.Module):
         Parameters
         ----------
         num_sequences: int
-            The number N of sequences to sample.
+            The number of sequences to sample.
         sequence_length: int
-            The length S of the sequences to sample.
+            The length of the sequences to sample. Generation tends to be much slower for longer
+            sequences compared to a higher number of sequences. The reason is that generation of
+            sequences needs to be iterative.
 
         Returns
         -------
         torch.Tensor [N, S]
-            The N state sequences of length S.
+            The state sequences (number of sequences N, sequence length S).
         """
         samples = torch.empty(num_sequences, sequence_length, dtype=torch.long)
 
         # 1) Initialize initial states
-        samples[:, 0] = dist.Categorical(self.initial_probs).sample(
-            (num_sequences,)
-        )
+        samples[:, 0] = self._sample_initial_states(num_sequences)
 
         # 2) Now sample the sequences
         for i in range(1, sequence_length):
-            samples[:, i] = dist.Categorical(
-                self.transition_probs[samples[:, i-1]]
-            ).sample()
+            generator = dist.Categorical(self.transition_probs[samples[:, i-1]])
+            samples[:, i] = generator.sample()
 
         return samples
 
@@ -185,10 +184,16 @@ class MarkovModel(xnn.Configurable, xnn.Estimator, nn.Module):
         """
         return power_iteration(self.transition_probs.t(), max_iterations=max_iterations)
 
+    def _sample_initial_states(self, num_samples):
+        generator = dist.Categorical(self.initial_probs)
+        return generator.sample((num_samples,))
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}(num_states={self.num_states})'
+
 
 def _get_transitions(sequences, symmetric=False):
-    # pylint: disable=not-callable
-    transitions = torch.tensor(
+    transitions = torch.as_tensor(
         list(zip(sequences[:, :-1].tolist(), sequences[:, 1:].tolist())),
         device=sequences.device
     ).permute(0, 2, 1).contiguous().view(-1, 2)

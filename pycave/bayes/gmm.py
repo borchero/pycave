@@ -1,13 +1,12 @@
-import math
 import time
 import torch
 import torch.nn as nn
 import torch.distributions as dist
-from sklearn.cluster import KMeans
 import pyblaze.nn as xnn
 from pyblaze.utils.stdio import ProgressBar
+from .output import Gaussian
 from .utils import log_normal, log_responsibilities, max_likeli_means, max_likeli_covars, \
-    to_one_hot
+    batch_weights
 
 class GMMConfig(xnn.Config):
     """
@@ -40,7 +39,7 @@ class GMMConfig(xnn.Config):
         )
 
 # pylint: disable=abstract-method
-class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
+class GMM(xnn.Configurable, nn.Module):
     """
     The GMM represents a mixture of a fixed number of multivariate gaussian distributions. This
     class may be used to find clusters whenever you expect data to be generated from a (fixed-size)
@@ -49,7 +48,6 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
 
     __config__ = GMMConfig
 
-    # MARK: Initialization
     def __init__(self, *args, **kwargs):
         """
         Initializes a new GMM either with a given `GMMConfig` or with the config's parameters passed
@@ -57,32 +55,11 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
         """
         super().__init__(*args, **kwargs)
 
-        self.component_weights = nn.Parameter(
-            torch.empty(self.num_components), requires_grad=False
-        )
-
-        self.means = nn.Parameter(
-            torch.empty(self.num_components, self.num_features),
-            requires_grad=False
-        )
-
-        if self.covariance == 'diag':
-            self.covars = nn.Parameter(
-                torch.empty(self.num_components, self.num_features),
-                requires_grad=False
-            )
-        elif self.covariance == 'spherical':
-            self.covars = nn.Parameter(
-                torch.empty(self.num_components), requires_grad=False
-            )
-        else:
-            self.covars = nn.Parameter(
-                torch.empty(self.num_features), requires_grad=False
-            )
+        self.component_weights = nn.Parameter(torch.empty(self.num_components), requires_grad=False)
+        self.gaussian = Gaussian(self.num_components, self.num_features, self.covariance)
 
         self.reset_parameters()
 
-    # MARK: Instance Methods
     def reset_parameters(self, data=None, max_iter=100):
         """
         Initializes the parameters of the GMM, optionally based on some data. If no data is given,
@@ -100,36 +77,10 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
             If data is given and K-Means is run, this defines the maximum number of iterations to
             run K-Means for.
         """
-        # 1) Means
-        if data is not None:
-            model = KMeans(
-                self.num_components, n_init=1, max_iter=max_iter, n_jobs=-1
-            )
-            model.fit(data.cpu().numpy())
-            # pylint: disable=not-callable
-            labels = torch.tensor(model.labels_, dtype=torch.long, device=data.device)
-            one_hot_labels = to_one_hot(labels, self.num_components)
-            self.means.set_(max_likeli_means(
-                data, one_hot_labels, one_hot_labels.sum(0)
-            ))
-        else:
-            labels = None
-            self.means.normal_()
+        # 1) Gaussian distributions
+        labels = self.gaussian.reset_parameters(data, max_iter)
 
-        # 2) Covariances
-        #    Covariance is estimated via the labels from kmeans if they exist,
-        #    otherwise all covariances are set to 1.
-        if labels is None:
-            self.covars.fill_(1)
-        else:
-            self.covars.set_(
-                max_likeli_covars(
-                    data, one_hot_labels, one_hot_labels.sum(0),
-                    self.means, self.covariance
-                )
-            )
-
-        # 3) Components
+        # 2) Components
         if labels is None:
             self.component_weights.uniform_(0, 1)
         else:
@@ -168,27 +119,13 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
         -------
         pyblaze.nn.History
             A history object containing the negative log-likelihoods over the course of the
-            EM-training.
+            EM-training (attribute `neg_log_likelihood`).
         """
         history = []
         tic = time.time()
 
-        # 1) Initialize batch weights
-        if batch_size is None:
-            num_batches = 1
-        else:
-            num_batches = int(math.ceil(data.size(0) / batch_size))
-        weights = torch.ones(num_batches)
-
-        # 1.1) Adjust weight of last batch
-        if batch_size is not None:
-            last_batch_size = data.size(0) - batch_size * (weights.size(0) - 1)
-            weights[-1] = last_batch_size / batch_size
-
-        # 1.2) Normalize weights
-        weights = weights / weights.sum()
-
-        # 1.3) Setup early stopping
+        # 1) Initialize batch weights and set up early stopping
+        num_batches, weights = batch_weights(data.size(0), batch_size or data.size(0))
         best_neg_log_likeli = float('inf')
 
         # 2) Run training
@@ -200,14 +137,12 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
 
             # 2.1) Update parameters
             self.component_weights.set_(updates['component_weights'])
-            self.means.set_(updates['means'])
-            self.covars.set_(updates['covars'])
+            self.gaussian.means.set_(updates['means'])
+            self.gaussian.covars.set_(updates['covars'])
 
             # 2.2) Update history
             neg_log_likeli = updates['neg_log_likelihood']
-            history.append({
-                'neg_log_likelihood': neg_log_likeli
-            })
+            history.append({'neg_log_likelihood': neg_log_likeli})
 
             # 2.3) Check for early stopping
             if best_neg_log_likeli - neg_log_likeli < eps:
@@ -235,7 +170,7 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
         torch.Tensor [N, K]
             The responsibilities when `return_responsibilities` is set.
         """
-        probs = log_normal(data, self.means, self.covars)
+        probs = self.gaussian.evaluate(data, log=True)
         log_resp, log_likeli = log_responsibilities(
             probs, self.component_weights, return_log_likelihood=True
         )
@@ -264,9 +199,9 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
         """
         size = data.size()
 
-        log_probs = log_normal(data.view(-1, size[-1]), self.means, self.covars)
+        probs = log_normal(data.view(-1, size[-1]), self.gaussian.means, self.gaussian.covars)
         priors = self.component_weights.view(1, -1)
-        components = (log_probs * priors).argmax(-1)
+        components = (probs * priors).argmax(-1)
 
         return components.view(*size[:-1])
 
@@ -292,42 +227,15 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
         components = self._sample_components(n)
 
         # 2) Sample from the components
-        ret = self._sample_from_components(components)
+        ret = self.gaussian.sample(components)
 
         if return_components:
             return ret, components
         return ret
 
-    # MARK: Private Methods
     def _sample_components(self, num_samples):
         generator = dist.Categorical(self.component_weights)
         return generator.sample((num_samples,))
-
-    def _sample_from_components(self, components):
-        samples = torch.empty(
-            components.size(0), self.num_features,
-            device=components.device, dtype=torch.float
-        )
-
-        unique_components, component_counts = torch.unique(
-            components, return_counts=True
-        )
-
-        for i in range(unique_components.size(0)):
-            c = unique_components[i]
-            samples[components == c] = \
-                dist.MultivariateNormal(
-                    self.means[c], self._get_full_covariance_matrix(c)
-                ).sample((component_counts[i],))
-
-        return samples
-
-    def _get_full_covariance_matrix(self, i):
-        if self.covariance == 'diag':
-            return torch.diag(self.covars[i])
-        if self.covariance == 'diag-shared':
-            return torch.diag(self.covars)
-        return self.covars[i] * torch.diag(torch.ones(self.num_features))
 
     def _estimate(self, data, batch=False):
         # 1) Compute responsibilities for components and data likelihood
@@ -358,7 +266,7 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
 
         # 2.3) Covariances
         covars = max_likeli_covars(
-            data, responsibilities, comp_sums, means, self.covariance
+            data, responsibilities, comp_sums, means, self.gaussian.covariance
         )
 
         return {
@@ -397,7 +305,7 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
         # 2) Initialize containers to aggregate information from different batches.
         component_weights = torch.zeros_like(self.component_weights)
         component_sums = torch.zeros(self.num_components, device=device)
-        means = torch.zeros_like(self.means)
+        means = torch.zeros_like(self.gaussian.means)
         neg_log_likeli = 0
 
         # 3) Estimate likelihood, compute component weights and means
@@ -429,7 +337,7 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
         covars_x_sq = torch.zeros(K, D, device=device)
         covars_xm_wo_means = torch.zeros(K, D, device=device)
 
-        covars = torch.zeros_like(self.covars)
+        covars = torch.zeros_like(self.gaussian.covars)
 
         for i in range(num_batches):
             # 4.1) Get batch
@@ -441,24 +349,20 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
             # 4.3) Now we actually compute the covariance. Due to the odd division by the
             # component_sums, we cannot use the functions from `.utils` and use an adjusted version
             # from the code there.
-            if self.covariance in ('diag', 'spherical'):
-                covars_x_sq += torch.matmul(resp.t(), batch * batch) * weights[i]
-                covars_xm_wo_means += torch.matmul(resp.t(), batch) * weights[i]
-            else:
-                pass
+            covars_x_sq += torch.matmul(resp.t(), batch * batch) * weights[i]
+            covars_xm_wo_means += torch.matmul(resp.t(), batch) * weights[i]
 
         # 4.4) After having processed all batches, we can aggregate the results to compute the
         # actual covariance
-        if self.covariance in ('diag', 'spherical'):
-            denom = component_sums.unsqueeze(1)
-            x_sq = covars_x_sq / denom
-            m_sq = means * means
-            xm = means * covars_xm_wo_means / denom
-            covars = x_sq - 2 * xm + m_sq + 1e-6 # regularization
-            if self.covariance == 'spherical':
-                covars = covars.mean(1)
-        else:
-            pass
+        denom = component_sums.unsqueeze(1)
+        x_sq = covars_x_sq / denom
+        m_sq = means * means
+        xm = means * covars_xm_wo_means / denom
+        covars = x_sq - 2 * xm + m_sq + 1e-6 # regularization
+        if self.covariance == 'spherical':
+            covars = covars.mean(1)
+        elif self.covariance == 'diag-shared':
+            covars = covars.mean(0)
 
         return {
             'component_weights': component_weights,
@@ -468,6 +372,6 @@ class GMM(xnn.Configurable, xnn.Estimator, nn.Module):
         }
 
     def _responsibilities(self, data):
-        probs = log_normal(data, self.means, self.covars)
+        probs = log_normal(data, self.gaussian.means, self.gaussian.covars)
         log_resp = log_responsibilities(probs, self.component_weights)
         return log_resp.exp()

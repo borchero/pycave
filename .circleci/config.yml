@@ -8,6 +8,15 @@ jobs:
         -   checkout
         -   run: pylint pycave
 
+    run-tests:
+        docker:
+        -   image: borchero/pyblaze:latest
+        steps:
+        -   checkout
+        -   run: |
+                pip install -e .
+                python -m unittest tests
+
     deploy-to-pypi:
         docker:
         -   image: borchero/pycave:latest
@@ -51,6 +60,7 @@ workflows:
     ci-workflow:
         jobs:
         -   lint-code
+        -   run-tests
 
     cd-workflow:
         jobs:

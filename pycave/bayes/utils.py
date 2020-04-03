@@ -96,7 +96,7 @@ def max_likeli_means(data, responsibilities, comp_sums=None):
         The responsibilities for each datapoint and component.
     comp_sums: torch.Tensor [K], default: None
         The cumulative probabilities for all components. If not given, this method can be used for
-        e.g. implementing mini-batch GMM. The means are not at all normalized.
+        e.g. implementing mini-batch GMM. The means are not normalized in this case.
 
     Returns
     -------
@@ -113,6 +113,10 @@ def max_likeli_covars(data, responsibilities, comp_sums, means, covar_type, reg=
     """
     Maximizes the likelihood of the data with respect to the covariances for a gaussian mixture
     model.
+
+    Note
+    ----
+    Implementation is adapted from scikit-learn.
 
     Parameters
     ----------
@@ -134,15 +138,11 @@ def max_likeli_covars(data, responsibilities, comp_sums, means, covar_type, reg=
     -------
     torch.Tensor ([K, D] or [D] or [K])
         The likelihood-maximizing covariances where the shape depends on the given covariance type.
-
-    Note:
-    -----
-    Implementation is adapted from scikit-learn.
     """
     if covar_type == 'diag':
         return _max_likeli_diag_covars(data, responsibilities, comp_sums, means, reg)
     if covar_type == 'diag-shared':
-        return _max_likeli_shared_diag_covars(data, comp_sums, means, reg)
+        return _max_likeli_diag_covars(data, responsibilities, comp_sums, means, reg).mean(0)
     return _max_likeli_diag_covars(data, responsibilities, comp_sums, means, reg).mean(1)
 
 
@@ -152,12 +152,6 @@ def _max_likeli_diag_covars(data, responsibilities, comp_sums, means, reg):
     m_sq = means * means
     xm = means * torch.matmul(responsibilities.t(), data) / denom
     return x_sq - 2 * xm + m_sq + reg
-
-
-def _max_likeli_shared_diag_covars(data, comp_sums, means, reg):
-    x_sq = torch.matmul(data.t(), data)
-    m_sq = torch.matmul(comp_sums * means.t(), means)
-    return (x_sq - m_sq) / comp_sums.sum() + reg
 
 
 def power_iteration(A, eps=1e-7, max_iterations=100):
@@ -199,16 +193,147 @@ def to_one_hot(X, n):
     """
     Creates a one-hot matrix from a set of indices.
 
-    Parameters:
-    -----------
-    - X: torch.Tensor [N, D]
+    Parameters
+    ----------
+    X: torch.Tensor [N, D]
         The indices to convert into one-hot vectors.
-    - n: int
+    n: int
         The number of entries in the one-hot vectors.
 
-    Returns:
-    --------
-    - torch.Tensor [N, D, n]
+    Returns
+    -------
+    torch.Tensor [N, D, n]
         The one-hot matrix.
     """
     return torch.eye(n, device=X.device)[X]
+
+
+def normalize(value, dims=-1, return_denom=False):
+    """
+    Normalizes a tensor in the given dimension such that all entries sum to one. It can then be
+    interpreted as a probability distribution.
+
+    Parameters
+    ----------
+    value: torch.Tensor [...]
+        A tensor of arbitrary shape.
+    dims: int or list of int, default: -1
+        The dimension which to sum, i.e. which dimensions model a probability distribution.
+    return_denom: bool, default: False
+        Whether to return the denominator that is used to normalize values.
+
+    Returns
+    -------
+    torch.Tensor [...]
+        The normalized input tensor (same shape as the input).
+    torch.Tensor [...]
+        The normalizing denominator if `return_denom` is `True` (same shape as the input).
+    """
+    denom = value.sum(dims, keepdim=True)
+    if return_denom:
+        return value / denom, denom
+    return value / denom
+
+
+def batch_weights(num_datapoints, batch_size):
+    """
+    Computes the weights for each of the batches of the given batch size needed to fully represent
+    the data.
+
+    Parameters
+    ----------
+    num_datapoints: int
+        The number of datapoints to fit in the batches.
+    batch_size: int
+        The number of datapoints per batch.
+
+    Returns
+    -------
+    int
+        The number of batches.
+    torch.Tensor [N]
+        A tensor with weights for each batch where the number of entries N times the batch size is
+        greater than or equal to the number of datapoints.
+    """
+    num_batches = int(math.ceil(num_datapoints / batch_size))
+    weights = torch.ones(num_batches)
+
+    # 1.1) Adjust weight of last batch
+    last_batch_size = num_datapoints - batch_size * (weights.size(0) - 1)
+    weights[-1] = last_batch_size / batch_size
+
+    return num_batches, weights / weights.sum()
+
+
+def packed_get_last(sequences, batch_sizes):
+    """
+    Retrieves the last item of each sequence in the given data according to the given batch sizes.
+
+    Parameters
+    ----------
+    sequences: torch.Tensor [N, ...]
+        The data tensor of the packed sequences (number of total elements N).
+    batch_sizes: torch.Tensor [B]
+        The batch sizes (maximum sequence length B).
+
+    Returns
+    -------
+    torch.Tensor [S, ...]
+        The data of the packed sequences with each sequence's last element (number of sequences S).
+    """
+    num_sequences = batch_sizes[0].item()
+    max_length = batch_sizes.size(0)
+    device = sequences.device
+
+    result = torch.empty(num_sequences, *sequences.size()[1:], device=device)
+    result_offset = 0
+    data_offset = sequences.size(0)
+
+    for i in range(max_length - 1, -1, -1):
+        prev_count = batch_sizes[i+1].item() if i < max_length - 1 else 0
+        count = batch_sizes[i].item()
+        diff = count - prev_count
+
+        result[result_offset: result_offset+diff] = sequences[data_offset-diff: data_offset]
+
+        result_offset += diff
+        data_offset -= count
+
+    return result
+
+def packed_drop_last(sequences, batch_sizes):
+    """
+    Drops the last item of each sequence in the given data according to the given batch sizes.
+
+    Parameters
+    ----------
+    sequences: torch.Tensor [N, ...]
+        The data tensor of the packed sequences (number of total elements N).
+    batch_sizes: torch.Tensor [B]
+        The batch sizes (maximum sequence length B).
+
+    Returns
+    -------
+    torch.Tensor [N - S, ...]
+        The data of the packed sequences where each sequence's last element has been dropped (number
+        of sequences S).
+    """
+    num_sequences = batch_sizes[0].item()
+    max_length = batch_sizes.size(0)
+    device = sequences.device
+
+    result = torch.empty(sequences.size(0) - num_sequences, *sequences.size()[1:], device=device)
+    result_offset = result.size(0)
+    data_offset = sequences.size(0) - batch_sizes[-1].item()
+
+    for i in range(max_length - 2, -1, -1):
+        prev_count = batch_sizes[i+1].item()
+        count = batch_sizes[i].item()
+
+        result[result_offset-prev_count: result_offset] = \
+            sequences[data_offset-count: data_offset-count+prev_count]
+
+        result_offset -= prev_count
+        data_offset -= count
+
+    return result

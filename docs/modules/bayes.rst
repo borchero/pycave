@@ -9,7 +9,6 @@ Gaussian Mixture Model
 
 .. automodule:: pycave.bayes.gmm
     :members:
-    :undoc-members:
     :exclude-members: is_valid
 
 Markov Model
@@ -17,5 +16,10 @@ Markov Model
 
 .. automodule:: pycave.bayes.markov
     :members:
-    :undoc-members:
-    :exclude-members: predict
+
+Hidden Markov Model
+-------------------
+
+.. automodule:: pycave.bayes.hmm
+    :members:
+    :exclude-members: is_valid
