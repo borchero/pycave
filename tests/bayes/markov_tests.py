@@ -11,9 +11,7 @@ class TestMarkov(unittest.TestCase):
         """
         Test Markov model by restoring an existing one.
         """
-        config = MarkovModelConfig(
-            num_states=4
-        )
+        config = MarkovModelConfig(num_states=4)
 
         markov_reference = MarkovModel(config)
         markov_reference.initial_probs.set_(torch.as_tensor([
@@ -26,28 +24,21 @@ class TestMarkov(unittest.TestCase):
             [0.2, 0.2, 0.3, 0.3]
         ]))
 
+        torch.manual_seed(21)
         samples = markov_reference.sample(50_000, 20)
 
         markov = MarkovModel(config)
         markov.fit(samples)
 
-        self.assertTrue(
-            torch.allclose(
-                markov_reference.initial_probs,
-                markov.initial_probs,
-                atol=0.01,
-                rtol=0
-            )
-        )
+        self.assertTrue(torch.allclose(
+            markov_reference.initial_probs, markov.initial_probs,
+            atol=0.01, rtol=0
+        ))
 
-        self.assertTrue(
-            torch.allclose(
-                markov_reference.transition_probs,
-                markov.transition_probs,
-                atol=0.01,
-                rtol=0
-            )
-        )
+        self.assertTrue(torch.allclose(
+            markov_reference.transition_probs, markov.transition_probs,
+            atol=0.01, rtol=0
+        ))
 
 
 if __name__ == '__main__':

@@ -1,28 +1,13 @@
-import time
 import torch
 import torch.nn as nn
 import torch.distributions as dist
+from torch.nn.utils.rnn import PackedSequence, pack_sequence
 import pyblaze.nn as xnn
-from .utils import power_iteration
+from pycave.bayes.utils import power_iteration
+from .config import MarkovModelConfig
+from .engine import MarkovModelEngine
 
-class MarkovModelConfig(xnn.Config):
-    """
-    The Markov model config can be used to customize the Markov model.
-    """
-
-    num_states: int
-    """
-    The number of states in the Markov model.
-    """
-
-    symmetric: bool = False
-    """
-    Whether to use a symmetric transition probability matrix.
-    """
-
-
-# pylint: disable=abstract-method
-class MarkovModel(xnn.Configurable, xnn.Estimator, nn.Module):
+class MarkovModel(xnn.Estimator, xnn.Configurable, nn.Module):
     """
     The MarkovModel models a simple MarkovChain with a fixed set of states. You may use this class
     whenever states are known and transition probabilities are the only quantity of interest. In
@@ -30,8 +15,8 @@ class MarkovModel(xnn.Configurable, xnn.Estimator, nn.Module):
     """
 
     __config__ = MarkovModelConfig
+    __engine__ = MarkovModelEngine
 
-    # MARK: Initialization
     def __init__(self, *args, **kwargs):
         """
         Initializes a new Markov model by passing a `MarkovModelConfig` or the config's
@@ -48,7 +33,6 @@ class MarkovModel(xnn.Configurable, xnn.Estimator, nn.Module):
 
         self.reset_parameters()
 
-    # MARK: Instance Methods
     def reset_parameters(self):
         """
         Resets the parameter of the model by sampling initial probabilities as well as transition
@@ -62,78 +46,81 @@ class MarkovModel(xnn.Configurable, xnn.Estimator, nn.Module):
         self.transition_probs.uniform_()
         self.transition_probs /= self.transition_probs.sum(1, keepdim=True)
 
-    def fit(self, sequences, teleport_alpha=0):
+    def forward(self, data):
         """
-        Optimizes the parameters of the markov model from the given sequences.
+        Runs inference for a single packed sequence, i.e. computes the negative log-likelihood of
+        the given sequences.
 
         Parameters
         ----------
-        sequences: torch.Tensor [N, S]
-            N sequences to train the Markov model on. The sequences are expected to be of uniform
-            length S. Each value of the tensor must be the index of a state.
+        data: torch.PackedSequence [N]
+            The sequences for which to compute the negative log-likelihood (number of items N).
+
+        Returns
+        -------
+        torch.Tensor [1]
+            The negative log-likelihood.
+        """
+        num_sequences = data.batch_sizes[0].item()
+
+        # 1) Get probabilities of first sequence values
+        log_likeli = self.initial_probs[data.data[:num_sequences]].log()
+        offset = num_sequences
+
+        # 2) Iterate over transitions
+        for prev_size, size in zip(data.batch_sizes, data.batch_sizes[1:]):
+            source = data.data[offset-prev_size: offset-prev_size+size]
+            target = data.data[offset: offset+size]
+            log_likeli[:size] += self.transition_probs[source, target].log()
+            offset += size
+
+        # 3) Compute final negative log-likelihood
+        return -log_likeli.logsumexp(-1).sum()
+
+    def fit(self, *args, **kwargs):
+        """
+        Optimizes the model's parameters. Many parameters are not described here but can be inferred
+        from `here <https://bit.ly/39FoKpe>`_. By default, data must be given as PyTorch data
+        loader. However, in order to make calling this function easier for simple use cases, you
+        can also supply the following instead:
+
+        * A single packed sequence
+        * A single 2-D tensor (interpreted as batch of sequences)
+        * A list of packed sequences
+        * A list of 2-D tensors (interpreted as batches of sequences)
+
+        Apart from the data given as first parameter, the following keyword arguments may be given:
+
+        Parameters
+        ----------
+        symmetric: bool, default: False
+            Whether a symmetric transition matrix should be learnt from the data (e.g. useful
+            when training on random walks from an undirected graph).
         teleport_alpha: float, default: 0
-            The probability of "invalid" transitions in the given sequences. This setting is
-            motivated by a random walker which teleports after every step with probability alpha.
+            The probability of random teleportations from one state to a randomly selected other
+            one upon every transition. Generally "spaces out" probabilities in the transition
+            probability matrix.
 
         Returns
         -------
         pyblaze.nn.History
-            For completeness, it returns a history object. However, apart from the duration of the
-            training, the object does not carry any information.
+            A history object carrying no information but the training time (`duration` attribute).
         """
-        tic = time.time()
+        data = self._process_input(args[0])
+        return super().fit(data, *args[1:], **kwargs)
 
-        # 1) Extract information
-        initial_states = sequences[:, 0]
-        transitions = _get_transitions(sequences, self.symmetric)
-
-        # 2) Update initial probabilities
-        counts = torch.bincount(initial_states, minlength=self.num_states)
-        counts = counts.float()
-        self.initial_probs.set_(counts / counts.sum())
-
-        # 3) Update transition probabilities
-        tr_counts = _count_transitions(transitions, self.num_states)
-        tr_matrix = tr_counts / tr_counts.sum(1, keepdim=True)
-
-        if teleport_alpha > 0:
-            teleport_factor = teleport_alpha / tr_matrix.size(0)
-            teleport_matrix = torch.ones_like(tr_matrix)
-            beta = 1 - teleport_alpha
-            tr_matrix = (tr_matrix - teleport_factor * teleport_matrix) / beta
-
-        self.transition_probs.set_(tr_matrix)
-
-        return xnn.History(time.time() - tic, [])
-
-    def evaluate(self, sequences):
+    def evaluate(self, *args, **kwargs):
         """
-        Computes the negative log-likelihood of observing the given sequences under this stochastic
-        model.
-
-        Parameters
-        ----------
-        sequences: torch.Tensor [N, S]
-            N sequences of S states.
+        Computes the negative log-likelihood of the data under this model.
 
         Returns
         -------
-        float
-            The negative log-likelihood divided by the number of sequences.
+        pyblaze.nn.Evaluation
+            An evaluation object where the `neg_log_likelihood` property yields the per-datapiont
+            negative log-likelihood.
         """
-        initial_log_probs = self.initial_probs[sequences[:, 0]].log()
-        transitions = _get_transitions(sequences)
-        transition_log_probs = self.transition_probs[transitions].log()
-        log_prob = initial_log_probs.sum() + transition_log_probs.sum()
-        return log_prob / sequences.size(0)
-
-    def predict(self):
-        """
-        Only implemented for completeness, does not do anything.
-        """
-        raise AttributeError(
-            f"{self.__class__.__name__} does not provide a predict method."
-        )
+        data = self._process_input(args[0])
+        return super().evaluate(data, *args[1:], **kwargs)
 
     def sample(self, num_sequences, sequence_length):
         """
@@ -188,28 +175,14 @@ class MarkovModel(xnn.Configurable, xnn.Estimator, nn.Module):
         generator = dist.Categorical(self.initial_probs)
         return generator.sample((num_samples,))
 
+    def _process_input(self, data):
+        if isinstance(data, PackedSequence):
+            return [data]
+        if isinstance(data, torch.Tensor):
+            return [pack_sequence(data)]
+        if isinstance(data, (list, tuple)) and isinstance(data[0], torch.Tensor):
+            return [pack_sequence(d) for d in data]
+        return data
+
     def __repr__(self):
         return f'{self.__class__.__name__}(num_states={self.num_states})'
-
-
-def _get_transitions(sequences, symmetric=False):
-    transitions = torch.as_tensor(
-        list(zip(sequences[:, :-1].tolist(), sequences[:, 1:].tolist())),
-        device=sequences.device
-    ).permute(0, 2, 1).contiguous().view(-1, 2)
-
-    if symmetric:
-        transitions = torch.cat([
-            transitions,
-            transitions.roll(1, dims=1)
-        ])
-
-    return transitions
-
-
-def _count_transitions(transitions, num_states):
-    return torch.sparse.FloatTensor(
-        transitions.t(), torch.ones(transitions.size(0)),
-        (num_states, num_states),
-        device=transitions.device
-    ).to_dense()

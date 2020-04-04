@@ -14,7 +14,10 @@ Gaussian Mixture Model
 Markov Model
 ------------
 
-.. automodule:: pycave.bayes.markov
+.. automodule:: pycave.bayes.markov.config
+    :members:
+
+.. automodule:: pycave.bayes.markov.model
     :members:
 
 Hidden Markov Model

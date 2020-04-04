@@ -46,7 +46,7 @@ class HMMEngine(xnn.BaseEngine):
                 'nll_sum': 0
             }
 
-    def after_epoch(self, metrics):
+    def after_epoch(self, _):
         # This function acts as final "maximize" step of the Baum-Welch algorithm if batching was
         # performed. Otherwise, it just updates the parameters of the model.
         if not self.requires_batching:
@@ -77,6 +77,10 @@ class HMMEngine(xnn.BaseEngine):
         # Clear the cache to move data from the GPU
         self.cache = None
 
+    def after_training(self):
+        # Clear the cache
+        self.cache = None
+
     def train_batch(self, data, eps=1e-4, patience=0):
         # This function acts as "expect" step of the Baum-Welch algorithm as well as computing
         # intermediate results for the M-step. The data is expected to be a packed sequence on the
@@ -95,7 +99,7 @@ class HMMEngine(xnn.BaseEngine):
         initial_probs = packed_get_first(gamma, data.batch_sizes).mean(0)
         transition_probs_num = xi.sum(0)
         transition_probs = normalize(transition_probs_num)
-        output_update = self.model.emission.maximize(data.data, gamma)
+        output_update = self.model.emission.maximize(data.data, gamma, self.requires_batching)
         nll = nll.item()
 
         # 3) Update cache depending on single-batch or multi-batch setting
@@ -127,9 +131,9 @@ class HMMEngine(xnn.BaseEngine):
 
     def eval_batch(self, data):
         return {
-            'nll': self.model(data)[1], # just get the nll
+            'nll': self.model(data)[1].item(), # just get the nll
             'n': data.data.size(0)
-        }
+        }, None
 
     def predict_batch(self, data, smooth=False):
         return {
@@ -154,7 +158,7 @@ class HMMEngine(xnn.BaseEngine):
             # Only negative-log-likelihood, divide by the number of datapoints
             nll_sum = sum([p['nll'] for p in predictions])
             n = sum([p['n'] for p in predictions])
-            return nll_sum / n
+            return {'neg_log_likelihood': nll_sum / n}
 
         if len(sample['out']) == 2:
             # Simple forward application, just concatenate the first values
@@ -167,6 +171,9 @@ class HMMEngine(xnn.BaseEngine):
         return flatten([
             self._rearrange_prediction_sequence(p) for p in predictions
         ])
+
+    def collate_targets(self, _):
+        return None
 
     def _rearrange_prediction_sequence(self, item):
         gamma = normalize(item['out'][0] * item['out'][1])

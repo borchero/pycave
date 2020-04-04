@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import PackedSequence, pack_sequence
 import pyblaze.nn as xnn
-from pycave.bayes.markov import MarkovModel
 from pycave.bayes.output import Discrete, Gaussian
 from pycave.bayes.utils import normalize, packed_get_last
+from pycave.bayes.markov.model import MarkovModel
 from .config import HMMConfig
 from .engine import HMMEngine
 
@@ -77,7 +77,7 @@ class HMM(xnn.Estimator, xnn.Configurable, nn.Module):
             over hidden states (number of sequences S, number of hidden states K).
         torch.Tensor [N, K]
             The (normalized) beta values if `smooth` is `True`.
-        float
+        torch.Tensor [1]
             The negative log-likelihood of the data under the model (not normalized for the number
             of datapoints).
         """
@@ -135,8 +135,9 @@ class HMM(xnn.Estimator, xnn.Configurable, nn.Module):
 
         Returns
         -------
-        float
-            The per-datapoint negative log-likelihood.
+        pyblaze.nn.Evaluation
+            An evaluation object where the `neg_log_likelihood` property yields the per-datapoint
+            negative log-likelihood.
         """
         data = self._process_input(args[0])
         return super().evaluate(data, *args[1:], **kwargs)
@@ -198,15 +199,15 @@ class HMM(xnn.Estimator, xnn.Configurable, nn.Module):
         max_length = batch_sizes.size(0)
         data_offset = 0
 
-        log_denom = torch.zeros(batch_sizes[0], 1, device=emission_probs.device)
+        log_denom = torch.zeros(num_sequences, 1, device=emission_probs.device)
 
         # 1) Initialize alpha if not given
         alpha = torch.empty(num_sequences, self.num_states, device=emission_probs.device)
         alpha, denom = normalize(
-            self.markov.initial_probs * emission_probs[:batch_sizes[0]],
+            self.markov.initial_probs * emission_probs[:num_sequences],
             return_denom=True
         )
-        data_offset += batch_sizes[0]
+        data_offset += num_sequences
         log_denom += denom.log()
 
         # 2) Run forward pass for emissions

@@ -27,7 +27,7 @@ class SequenceDataset(Dataset):
         ----------
         indexable: indexable of torch.Tensor
             A type with an implementation for `__len__` and `__getitem__` where the latter returns a
-            single sequence.
+            single sequence. Might e.g. be a list, a multi-dimensional tensor, or a dataset.
         """
         self.indexable = indexable
 

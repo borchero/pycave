@@ -58,7 +58,7 @@ class OutputHead(ABC):
         """
 
     @abstractmethod
-    def maximize(self, data, gamma):
+    def maximize(self, data, gamma, batch):
         """
         Returns an intermediate representation to update its parameters to maximize the probability
         of outputting the given sequences with the given gamma values.
@@ -72,6 +72,8 @@ class OutputHead(ABC):
         gamma: torch.Tensor [N, K]
             The responsibilities of all data items for the hidden states of the HMM. The layout is
             equal to the layout of `data` (number of hidden states K).
+        batch: bool
+            Whether this maximization step is for batch training.
 
         Returns
         -------
@@ -136,7 +138,7 @@ class Discrete(OutputHead, nn.Module):
         generator = dist.Categorical(self.probabilities[states])
         return generator.sample()
 
-    def maximize(self, sequences, gamma):
+    def maximize(self, sequences, gamma, _):
         gamma_ = gamma.t()
         sequences_ = sequences.view(1, -1).expand(self.num_states, -1)
 
@@ -266,10 +268,12 @@ class Gaussian(OutputHead, nn.Module):
 
         return samples.view(*shape, -1)
 
-    def maximize(self, sequences, gamma):
+    def maximize(self, sequences, gamma, batch):
         denom = gamma.sum(0)
         means = max_likeli_means(sequences, gamma, denom)
-        covars = max_likeli_covars(sequences, gamma, denom, self.means, self.covariance)
+        covars = max_likeli_covars(
+            sequences, gamma, denom, self.means if batch else means, self.covariance
+        )
         return {'means': means, 'covars': covars, 'count': sequences.size(0)}
 
     def update(self, current, previous=None):
