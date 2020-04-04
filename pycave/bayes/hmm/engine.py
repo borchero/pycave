@@ -77,7 +77,7 @@ class HMMEngine(xnn.BaseEngine):
         # Clear the cache to move data from the GPU
         self.cache = None
 
-    def train_batch(self, data, eps=1e-4, patience=3):
+    def train_batch(self, data, eps=1e-4, patience=0):
         # This function acts as "expect" step of the Baum-Welch algorithm as well as computing
         # intermediate results for the M-step. The data is expected to be a packed sequence on the
         # correct device.

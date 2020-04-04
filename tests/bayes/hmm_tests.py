@@ -261,7 +261,7 @@ class TestHMM(unittest.TestCase):
         sequences = hmm_reference.sample(16536, 16)
 
         hmm = HMM(config)
-        hmm.fit(sequences, epochs=100, eps=1e-7)
+        hmm.fit(sequences, epochs=100, eps=1e-7, patience=3)
 
         order = hmm.markov.initial_probs.argsort(descending=True)
 

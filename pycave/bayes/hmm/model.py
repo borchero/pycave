@@ -18,8 +18,8 @@ class HMM(xnn.Estimator, xnn.Configurable, nn.Module):
 
     def __init__(self, *args, **kwargs):
         """
-        Initialies a new HMM either with a given `HMMConfig` or with the config's parameters passed
-        as keyword arguments.
+        Initialies a new HMM either with a given :class:`HMMConfig` or with the config's parameters
+        passed as keyword arguments.
         """
         super().__init__(*args, **kwargs)
 
@@ -94,8 +94,10 @@ class HMM(xnn.Estimator, xnn.Configurable, nn.Module):
 
     def fit(self, *args, **kwargs):
         """
-        In order to make calling this function easier when you don't want to use a PyTorch data
-        loader, you can also supply one of the following instead:
+        Optimizes the HMM's parameters according to some data. This method accepts a variety of
+        parameters which are documented `here <https://bit.ly/39FoKpe>`_. By default, data to
+        train on must be given as a PyTorch data loader. However, in order to make calling this
+        function easier for simple use cases, you can also supply one of the following instead:
 
         * A single packed sequence
         * A single tensor (interpreted as batch of sequences)
@@ -103,16 +105,62 @@ class HMM(xnn.Estimator, xnn.Configurable, nn.Module):
         * A list of tensors (interpreted as batches of sequences)
 
         Instead of supplying batches of sequences, it might, however, be more appropriate to use a
-        data loader to keep memory consumption low.
+        data loader to keep memory consumption low. Important additional keyword arguments are
+        documented below.
+
+        Parameters
+        ----------
+        epochs: int, default: 20
+            The maximum number of iterations to run training for.
+        eps: float, default: 1e-4
+            The minimum per-datapoint difference in the negative log-likelihood to consider a
+            model "better".
+        patience: int, default: 0
+            The number of times the negative log-likelihood may be above the minimum that has
+            already been achieved before aborting training.
+
+        Returns
+        -------
+        pyblaze.nn.History
+            A history object with a `neg_log_likelihood` attribute describing the development of
+            the negative log-likelihood over the course of training.
         """
         data = self._process_input(args[0])
         return super().fit(data, *args[1:], **kwargs)
 
     def evaluate(self, *args, **kwargs):
+        """
+        Returns the negative log-likelihood of the given data according to the model's parameters.
+        The data may be given in the same way as for the :meth:`fit` method.
+
+        Returns
+        -------
+        float
+            The per-datapoint negative log-likelihood.
+        """
         data = self._process_input(args[0])
         return super().evaluate(data, *args[1:], **kwargs)
 
     def predict(self, *args, **kwargs):
+        """
+        Returns a distribution over hidden states for the given sequence(s), either only for the
+        last timestep (filtering) or for all timesteps (smoothing). The data may be given in the
+        same way as for the :meth:`fit` method. Additional keyword arguments are given below.
+
+        Parameters
+        ----------
+        smooth: bool, default: False
+            Whether to perform smoothing and return distributions over hidden states for all time
+            steps of the sequences.
+
+        Returns
+        -------
+        torch.Tensor ([N, S, K] or [N, K]) or list of torch.Tensor [S, K]
+            The (normalized) distribution over all hidden states for all sequences. If smoothing is
+            performed, the returned shape might be 3-dimensional (if you passed sequences of equal
+            length as simple `torch.Tensor`) or given as a list if sequences have different
+            length (number of sequences N, length of sequences S, number of hidden states K).
+        """
         data = self._process_input(args[0])
         return super().predict(data, *args[1:], **kwargs)
 
