@@ -20,6 +20,9 @@ Markov Model
 Hidden Markov Model
 -------------------
 
-.. automodule:: pycave.bayes.hmm
+.. automodule:: pycave.bayes.hmm.config
     :members:
     :exclude-members: is_valid
+
+.. automodule:: pycave.bayes.hmm.model
+    :members:

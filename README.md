@@ -4,7 +4,8 @@
 
 PyCave provides well-known machine learning models with strong GPU acceleration in PyTorch. Its
 goal is not to provide a comprehensive collection of models or neural network layers, but rather
-complement other open-source libraries.
+complement other open-source libraries. All models are implemented based on [PyBlaze](https://github.com/borchero/pyblaze),
+enabling straightforward training on GPUs and a neural-network-like training interface.
 
 ## Features
 
@@ -12,12 +13,7 @@ PyCave currently includes the following models to be run on the GPU:
 
 * `pycave.bayes.GMM`: [Gaussian Mixture Models](https://en.wikipedia.org/wiki/Mixture_model#Gaussian_mixture_model), optionally trained via mini-batches if the GPU memory is too small to fit the data. Mini-batch training should *not* impact convergence. Initialization is performed using K-means, optionally on a subset of the data as it is comparatively slow.
 * `pycave.bayes.MarkovModel`: [Markov Models](https://en.wikipedia.org/wiki/Markov_model) able to learn transition probabilities from a sequence of discrete states.
-
-### Roadmap
-
-The following models are currently in development and will be published as soon as possible:
-
-* `pycave.bayes.HMM`: [Hidden Markov Models](https://en.wikipedia.org/wiki/Hidden_Markov_model), similar to the Gaussian Mixture Models but trained on sequences of datapoints to additionally learn transition probabilities.
+* `pycave.bayes.HMM`: [Hidden Markov Models](https://en.wikipedia.org/wiki/Hidden_Markov_model) with discrete and Gaussian outputs.
 
 ## Installation
 
@@ -29,7 +25,9 @@ pip install pycave
 
 ## Quickstart
 
-Using PyCave is really easy and is oriented towards Sklearn's interface. In order to train a GMM, you can initialize it as follows and fit it from a `torch.Tensor` as PyCave is fully implemented in PyTorch:
+Using PyCave is really easy if you are familiar with PyTorch and/or Sklearn. PyCave provides both, an interface closely oriented towards PyTorch's neural network training loop and Sklearn's minimal interface for estimators. Both of these features are essentially provided by [PyBlaze](https://github.com/borchero/pyblaze).
+
+A common example is training a GMM. You can initialize it as follows and simply fit it from a `torch.Tensor`:
 
 ```python
 from pycave.bayes import GMM

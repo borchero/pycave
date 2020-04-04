@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.distributions as dist
 from sklearn.cluster import KMeans
-from .utils import to_one_hot, max_likeli_means, max_likeli_covars, normalize, log_normal
+from .utils import to_one_hot, max_likeli_means, max_likeli_covars, log_normal
 
 class OutputHead(ABC):
     """
@@ -130,8 +130,7 @@ class Discrete(OutputHead, nn.Module):
         self.probabilities /= self.probabilities.sum(-1, keepdim=True)
 
     def evaluate(self, data):
-        probabilities = self.probabilities.t()[data]
-        return normalize(probabilities)
+        return self.probabilities.t()[data]
 
     def sample(self, states):
         generator = dist.Categorical(self.probabilities[states])
@@ -144,18 +143,16 @@ class Discrete(OutputHead, nn.Module):
         num = torch.zeros_like(self.probabilities)
         num.scatter_add_(1, sequences_, gamma_)
 
-        denom = gamma.sum(0)
+        denom = gamma.sum(0).view(-1, 1)
 
         return {'num': num, 'denom': denom}
 
     def update(self, current, previous=None):
-        num = current['num']
-        denom = current['denom']
+        if previous is None:
+            return current
 
-        if previous is not None:
-            num += previous['num']
-            denom += previous['denom']
-
+        num = current['num'] + previous['num']
+        denom = current['denom'] + previous['denom']
         return {'num': num, 'denom': denom}
 
     def apply(self, update):
@@ -272,14 +269,25 @@ class Gaussian(OutputHead, nn.Module):
     def maximize(self, sequences, gamma):
         denom = gamma.sum(0)
         means = max_likeli_means(sequences, gamma, denom)
-        covars = max_likeli_covars(sequences, gamma, denom, means, self.covariance)
-        return {'means': means, 'covars': covars}
+        covars = max_likeli_covars(sequences, gamma, denom, self.means, self.covariance)
+        return {'means': means, 'covars': covars, 'count': sequences.size(0)}
 
     def update(self, current, previous=None):
-        pass
+        if previous is None:
+            return current
+
+        new_count = previous['count'] + current['count']
+        prev_weight = previous['count'] / new_count
+        new_weight = current['count'] / new_count
+
+        new_means = previous['means'] * prev_weight + current['means'] * new_weight
+        new_covars = previous['covars'] * prev_weight + current['covars'] * new_weight
+
+        return {'means': new_means, 'covars': new_covars, 'count': new_count}
 
     def apply(self, update):
-        pass
+        self.means.set_(update['means'])
+        self.covars.set_(update['covars'])
 
     def _get_full_covariance_matrix(self, i):
         if self.covariance == 'diag':

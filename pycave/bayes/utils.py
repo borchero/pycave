@@ -265,6 +265,26 @@ def batch_weights(num_datapoints, batch_size):
     return num_batches, weights / weights.sum()
 
 
+def packed_get_first(sequences, batch_sizes):
+    """
+    Retrieves the first item of each sequence in the given data according to the given batch sizes.
+
+    Parameters
+    ----------
+    sequences: torch.Tensor [N, ...]
+        The data tensor of the packed sequences (number of total elements N).
+    batch_sizes: torch.Tensor [B]
+        The batch sizes (maximum sequence length B).
+
+    Returns
+    -------
+    torch.Tensor [S, ...]
+        The data of the packed sequences with each sequence's first element (number of sequences S).
+    """
+    num_sequences = batch_sizes[0].item()
+    return sequences[:num_sequences]
+
+
 def packed_get_last(sequences, batch_sizes):
     """
     Retrieves the last item of each sequence in the given data according to the given batch sizes.
@@ -300,6 +320,26 @@ def packed_get_last(sequences, batch_sizes):
         data_offset -= count
 
     return result
+
+def packed_drop_first(sequences, batch_sizes):
+    """
+    Drops the first item of each sequence in the given data according to the given batch sizes.
+
+    Parameters
+    ----------
+    sequences: torch.Tensor [N, ...]
+        The data tensor of the packed sequences (number of total elements N).
+    batch_sizes: torch.Tensor [B]
+        The batch sizes (maximum sequence length B).
+
+    Returns
+    -------
+    torch.Tensor [N - S, ...]
+        The data of the packed sequences where each sequence's first element has been dropped
+        (number of sequences S).
+    """
+    num_sequences = batch_sizes[0].item()
+    return sequences[num_sequences:]
 
 def packed_drop_last(sequences, batch_sizes):
     """

@@ -1,8 +1,5 @@
 import unittest
-import time
-import numpy as np
 import torch
-from hmmlearn.hmm import GaussianHMM
 from pycave.bayes import HMM, HMMConfig
 
 class TestHMM(unittest.TestCase):
@@ -123,7 +120,7 @@ class TestHMM(unittest.TestCase):
 
     def test_by_restore_gaussian(self):
         """
-        Test Gaussian HMM with spherical covariance by restoring an existing GMM.
+        Test Gaussian HMM with spherical covariance by restoring an existing HMM.
         """
         config = HMMConfig(
             num_states=3,
@@ -150,82 +147,137 @@ class TestHMM(unittest.TestCase):
         ))
 
         torch.manual_seed(42)
-        sequences = hmm_reference.sample(65536, 64)
-
-        # Test hmmlearn to ensure that sampling is correct
-        # h = GaussianHMM(3, 'spherical', init_params='mc')
-        # h.fit(sequences.view(-1, 2).numpy(), np.array([16] * 8192))
-
-        # order = np.argsort(h.startprob_)[::-1]
-
-        # self.assertTrue(np.allclose(
-        #     h.startprob_[order],
-        #     hmm_reference.markov.initial_probs.numpy(),
-        #     atol=0.01,
-        #     rtol=0
-        # ))
-
-        # self.assertTrue(np.allclose(
-        #     h.transmat_[order][:, order],
-        #     hmm_reference.markov.transition_probs.numpy(),
-        #     atol=0.01,
-        #     rtol=0
-        # ))
-
-        # self.assertTrue(np.allclose(
-        #     h.means_[order],
-        #     hmm_reference.emission.means.numpy(),
-        #     atol=0.1,
-        #     rtol=0
-        # ))
-
-        # self.assertTrue(np.allclose(
-        #     h.covars_[:, 0, 0, 0][order],
-        #     hmm_reference.emission.covars.numpy(),
-        #     atol=0.02,
-        #     rtol=0
-        # ))
-
-        # Test fitting procedure
-        tic = time.time()
-        packed = torch.nn.utils.rnn.pack_sequence(sequences)
-        print(time.time() - tic)
+        sequences = hmm_reference.sample(8192, 8)
 
         hmm = HMM(config)
-        hmm.reset_parameters(sequences)
-        hist = hmm.fit(packed, max_iter=10, verbose=True)
-
-        print(f'Duration: {hist.duration:.4f}')
-        print(hist.neg_log_likelihood)
+        hmm.fit(sequences)
 
         order = hmm.markov.initial_probs.argsort(descending=True)
 
         self.assertTrue(torch.allclose(
-            hmm.markov.initial_probs[order],
-            hmm_reference.markov.initial_probs,
-            atol=0.01,
-            rtol=0
+            hmm.markov.initial_probs[order], hmm_reference.markov.initial_probs,
+            atol=0.01, rtol=0
         ))
 
         self.assertTrue(torch.allclose(
-            hmm.markov.transition_probs[order][:, order],
-            hmm_reference.markov.transition_probs,
-            atol=0.01,
-            rtol=0
+            hmm.markov.transition_probs[order][:, order], hmm_reference.markov.transition_probs,
+            atol=0.01, rtol=0
         ))
 
         self.assertTrue(torch.allclose(
-            hmm.emission.means[order],
-            hmm_reference.emission.means,
-            atol=0.05,
-            rtol=0
+            hmm.emission.means[order], hmm_reference.emission.means,
+            atol=0.05, rtol=0
         ))
 
         self.assertTrue(torch.allclose(
-            hmm.emission.covars[order],
-            hmm_reference.emission.covars,
-            atol=0.02,
-            rtol=0
+            hmm.emission.covars[order], hmm_reference.emission.covars,
+            atol=0.02, rtol=0
+        ))
+
+    def test_by_batch_restore_gaussian(self):
+        """
+        Test Gaussian HMM with spherical covariance by restoring an existing HMM via batch training.
+        """
+        config = HMMConfig(
+            num_states=3,
+            output_dim=2,
+            output_covariance='spherical'
+        )
+
+        hmm_reference = HMM(config)
+
+        hmm_reference.markov.initial_probs.set_(torch.as_tensor(
+            [0.75, 0.25, 0], dtype=torch.float
+        ))
+        hmm_reference.markov.transition_probs.set_(torch.as_tensor([
+            [0, 1, 0],
+            [0.5, 0, 0.5],
+            [1, 0, 0]
+        ], dtype=torch.float))
+
+        hmm_reference.emission.means.set_(torch.as_tensor([
+            [-1, -1], [0, 1], [1, -1]
+        ], dtype=torch.float))
+        hmm_reference.emission.covars.set_(torch.as_tensor(
+            [0.1, 0.25, 0.2]
+        ))
+
+        torch.manual_seed(42)
+        sequences = hmm_reference.sample(8192, 8)
+
+        hmm = HMM(config)
+        hmm.fit(sequences.chunk(32))
+
+        order = hmm.markov.initial_probs.argsort(descending=True)
+
+        self.assertTrue(torch.allclose(
+            hmm.markov.initial_probs[order], hmm_reference.markov.initial_probs,
+            atol=0.01, rtol=0
+        ))
+
+        self.assertTrue(torch.allclose(
+            hmm.markov.transition_probs[order][:, order], hmm_reference.markov.transition_probs,
+            atol=0.01, rtol=0
+        ))
+
+        self.assertTrue(torch.allclose(
+            hmm.emission.means[order], hmm_reference.emission.means,
+            atol=0.05, rtol=0
+        ))
+
+        self.assertTrue(torch.allclose(
+            hmm.emission.covars[order], hmm_reference.emission.covars,
+            atol=0.02, rtol=0
+        ))
+
+    def test_by_restore_discrete(self):
+        """
+        Test Discrete HMM with by restoring an existing HMM.
+        """
+        config = HMMConfig(
+            num_states=3,
+            output='discrete',
+            output_num_states=4,
+        )
+
+        hmm_reference = HMM(config)
+
+        hmm_reference.markov.initial_probs.set_(torch.as_tensor(
+            [0.75, 0.25, 0], dtype=torch.float
+        ))
+        hmm_reference.markov.transition_probs.set_(torch.as_tensor([
+            [0.9, 0.1, 0],
+            [0.5, 0, 0.5],
+            [0, 1, 0]
+        ], dtype=torch.float))
+
+        hmm_reference.emission.probabilities.set_(torch.as_tensor([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 0.5, 0.5]
+        ]))
+
+        torch.manual_seed(21)
+        sequences = hmm_reference.sample(16536, 16)
+
+        hmm = HMM(config)
+        hmm.fit(sequences, epochs=100, eps=1e-7)
+
+        order = hmm.markov.initial_probs.argsort(descending=True)
+
+        self.assertTrue(torch.allclose(
+            hmm.markov.initial_probs[order], hmm_reference.markov.initial_probs,
+            atol=0.01, rtol=0
+        ))
+
+        self.assertTrue(torch.allclose(
+            hmm.markov.transition_probs[order][:, order], hmm_reference.markov.transition_probs,
+            atol=0.01, rtol=0
+        ))
+
+        self.assertTrue(torch.allclose(
+            hmm.emission.probabilities[order], hmm_reference.emission.probabilities,
+            atol=0.05, rtol=0
         ))
 
 
