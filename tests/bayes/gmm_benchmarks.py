@@ -1,5 +1,6 @@
 import time
 import unittest
+import math
 import numpy as np
 import torch
 from sklearn.mixture import GaussianMixture
@@ -25,11 +26,11 @@ class BenchmarkGMM(unittest.TestCase):
             covariance='spherical'
         )
 
-        samples = self.generate_samples(config, 100_000, 'cpu')
+        samples = self.generate_samples(config, 100_000)
         sklearn_time = np.mean([self.train_sklearn(config, samples) for _ in range(3)])
         ours_cpu_time = np.mean([self.train_ours(config, samples) for _ in range(3)])
         ours_gpu_time = np.mean([
-            self.train_ours(config, samples.cuda(), 'cuda:0') for _ in range(3)
+            self.train_ours(config, samples.cuda(), gpu=True) for _ in range(3)
         ])
 
         print(f"-------------------------------------")
@@ -47,18 +48,18 @@ class BenchmarkGMM(unittest.TestCase):
             covariance='spherical'
         )
 
-        samples = self.generate_samples(config, 10_000_000, 'cpu')
+        samples = self.generate_samples(config, 10_000_000)
         samples = samples.repeat(10, 1)
 
         total_time = np.mean([
-            self.train_ours(config, samples, 'cuda:0', batch_size=750_000) for _ in range(3)
+            self.train_ours(config, samples, gpu=True, batch_size=750_000) for _ in range(3)
         ])
 
         print(f"-------------------------------------")
         print(f"Mini-batch training took: {total_time:.2f}")
         print(f"-------------------------------------")
 
-    def generate_samples(self, config, num_samples, device):
+    def generate_samples(self, config, num_samples):
         """
         Generates samples by initializing a random GMM with the specified configuration.
         """
@@ -67,12 +68,12 @@ class BenchmarkGMM(unittest.TestCase):
         generator = GMM(config)
         weights = torch.rand(config.num_components)
         generator.component_weights.set_(weights / weights.sum())
-        generator.means.set_(torch.randn(config.num_components, config.num_features))
+        generator.gaussian.means.set_(torch.randn(config.num_components, config.num_features))
 
         if config.covariance == 'diag':
-            generator.covars.set_(torch.rand(config.num_components, config.num_features))
+            generator.gaussian.covars.set_(torch.rand(config.num_components, config.num_features))
 
-        samples = generator.sample(num_samples).to(device)
+        samples = generator.sample(num_samples)
 
         toc = time.time()
         print(f"Generated {num_samples:,} samples in {toc-tic:.2f} seconds.")
@@ -83,15 +84,14 @@ class BenchmarkGMM(unittest.TestCase):
         """
         Fits an sklearn GMM as defined by the config on the given samples.
         """
-        num_samples = samples.size(0)
         samples = samples.numpy()
         tic = time.time()
 
         gmm = GaussianMixture(
             config.num_components,
             config.covariance,
-            init_params='kmeans',
-            tol=1e-7 * num_samples
+            init_params='random',
+            tol=1e-5
         )
         gmm.fit(samples)
 
@@ -103,16 +103,16 @@ class BenchmarkGMM(unittest.TestCase):
 
         return toc - tic
 
-    def train_ours(self, config, samples, device='cpu', batch_size=None):
+    def train_ours(self, config, samples, gpu=False, batch_size=None):
         """
         Trains our model and optionally initializes with a fraction of the available data.
         """
-        num_samples = samples.size(0)
-
         tic = time.time()
 
-        gmm = GMM(config).to(device)
-        history = gmm.fit(samples, batch_size=batch_size)
+        gmm = GMM(config)
+        if batch_size is not None:
+            samples = samples.chunk(int(math.ceil(samples.size(0) / batch_size)))
+        history = gmm.fit(samples, gpu=gpu)
 
         toc = time.time()
 
@@ -120,7 +120,7 @@ class BenchmarkGMM(unittest.TestCase):
 
         print(f"Training with pycave took {toc-tic:.2f} seconds.")
         print(f"    Number of iterations was:    {len(history):,}")
-        print(f"    Negative log-likelihood was: {nll * num_samples:.4f}")
+        print(f"    Negative log-likelihood was: {nll:.4f}")
 
         return toc - tic
 

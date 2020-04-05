@@ -36,7 +36,7 @@ class GMM(xnn.Estimator, xnn.Configurable, nn.Module):
     Additionally, the methods allow the following keyword arguments:
 
     `fit(...)`
-        eps: float, default: 1e-7
+        eps: float, default: 0.01
             The minimum per-datapoint difference in the negative log-likelihood to consider a
             model "better", thus indicating convergence.
     """

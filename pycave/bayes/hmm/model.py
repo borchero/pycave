@@ -39,7 +39,7 @@ class HMM(xnn.Estimator, xnn.Configurable, nn.Module):
     `fit(...)`
         * epochs: int, default: 20
             The maximum number of iterations to run training for.
-        * eps: float, default: 1e-4
+        * eps: float, default: 0.01
             The minimum per-datapoint difference in the negative log-likelihood to consider a
             model "better".
         * patience: int, default: 0

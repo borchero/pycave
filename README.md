@@ -38,13 +38,13 @@ A simple guide is available [in the documentation](https://pycave.borchero.com/g
 
 In order to demonstrate the potential of PyCave, we compared the runtime of PyCave both on CPU and GPU against the runtime of Sklearn's [Gaussian Mixture Model](https://scikit-learn.org/stable/modules/generated/sklearn.mixture.GaussianMixture.html).
 
-We train on 100k 128-dimensional datapoints sampled from a "ground truth" GMM with 512 components. PyCave's GMM and Sklearn should then minimize the negative log-likelihood (NLL) of the data. While PyCave's GMM worked well with random initialization, Sklearn required (a single-pass) K-Means initialization to yield useful results. In both cases, the GMM converged when the per-datapoint NLL was below 1e-7.
+We train on 100k 128-dimensional datapoints sampled from a "ground truth" GMM with 512 components. PyCave's GMM and Sklearn should then minimize the negative log-likelihood (NLL) of the data. For our GMM, convergence was reached when converging on a per-datapoint NLL of 0.01. For Sklearn, we had to set it to 1e-5. Initialization was random instead of K-Means initialization as K-Means needs to be run via Sklearn, hence on the CPU.
 
-| Implementation | Training Time | Speedup Compared to Sklearn |
+| Implementation | Avg. Train Duration | Speedup | Speedup/Iteration |
 | --- | --- | --- |
-| Sklearn (CPU) | 114.41s | **x1** |
-| PyCave (CPU) | 32.07s | **x3.57** |
-| PyCave (GPU) | 0.27s | **x425.19** |
+| Sklearn (CPU) | 299.04s | - | 
+| PyCave (CPU) | 31.29s | **x9.56** |
+| PyCave (GPU) | 0.35s | **x864.36** |
 
 By moving to PyCave's GPU implementation of GMMs, you can therefore expects speedups by a factor of hundreds.
 
@@ -52,9 +52,9 @@ For huge datasets, PyCave's GMM also supports mini-batch training on a GPU. We r
 
 | Implementation | Training Time |
 | --- | --- |
-| PyCave (GPU, mini-batch) | 247.95s |
+| PyCave (GPU, mini-batch) | 373.23s |
 
-Even on this huge dataset, PyCave is able to fit the GMM in just over 4 minutes.
+As can be observed, the GMM training scales almost linearly with the number of datapoints (0.35s from the table above times 1,000).
 
 *We ran the benchmark on 8 Cores of an Intel Xeon E5-2630 with 2.2 GHz and a single GeForce GTX 1080 GPU with 11 GB of memory.*
 

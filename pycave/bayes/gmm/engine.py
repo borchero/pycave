@@ -49,9 +49,10 @@ class GMMEngine(xnn.BaseEngine):
     def after_training(self):
         self.cache = None
 
-    def train_batch(self, data, eps=1e-7):
+    def train_batch(self, data, eps=0.01):
         # E-step: compute responsibilities
         responsibilities, nll = self.model(data)
+        nll_ = nll.item() / data.size(0)
 
         # M-step: maximize
         gaussian_max = self.model.gaussian.maximize(data, responsibilities, self.requires_batching)
@@ -67,7 +68,7 @@ class GMMEngine(xnn.BaseEngine):
         self.cache['component_weights'] = \
             self.cache['component_weights'] * prev_weight + component_weights * cur_weight
         self.cache['neg_log_likelihood'] = \
-            self.cache['neg_log_likelihood'] * prev_weight + nll / data.size(0)
+            self.cache['neg_log_likelihood'] * prev_weight + (nll_ * cur_weight)
 
         # Attach metadata
         self.cache['eps'] = eps
