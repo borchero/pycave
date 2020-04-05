@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import PackedSequence, pack_sequence
 import pyblaze.nn as xnn
-from pycave.bayes.output import Discrete, Gaussian
-from pycave.bayes.utils import normalize, packed_get_last
 from pycave.bayes.markov.model import MarkovModel
+from pycave.bayes._internal.output import Discrete, Gaussian
+from pycave.bayes._internal.utils import normalize, packed_get_last
 from .config import HMMConfig
 from .engine import HMMEngine
 
@@ -23,10 +23,7 @@ class HMM(xnn.Estimator, xnn.Configurable, nn.Module):
         """
         super().__init__(*args, **kwargs)
 
-        self.markov = MarkovModel(
-            num_states=self.num_states,
-            symmetric=self.symmetric
-        )
+        self.markov = MarkovModel(num_states=self.num_states)
 
         if self.output == 'gaussian':
             self.emission = Gaussian(self.num_states, self.output_dim, self.output_covariance)

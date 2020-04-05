@@ -66,12 +66,10 @@ class OutputHead(ABC):
         Parameters
         ----------
         data: torch.Tensor [N, ?]
-            Data from the observed sequences. Contents are shaped either by concatenating the
-            sequences or by concatenating the timesteps of the sequences ("packing"). The layout
-            should, however, be irrelevant to this method (number of datapoints N).
+            Datapoints which to use for maximizing the parameters (number of datapoints N).
         gamma: torch.Tensor [N, K]
-            The responsibilities of all data items for the hidden states of the HMM. The layout is
-            equal to the layout of `data` (number of hidden states K).
+            The responsibilities of all data items for the underlying steas. The layout is equal to
+            the layout of `data` (number of states K).
         batch: bool
             Whether this maximization step is for batch training.
 
@@ -145,7 +143,7 @@ class Discrete(OutputHead, nn.Module):
         num = torch.zeros_like(self.probabilities)
         num.scatter_add_(1, sequences_, gamma_)
 
-        denom = gamma.sum(0).view(-1, 1)
+        denom = gamma.sum(0).unsqueeze(1)
 
         return {'num': num, 'denom': denom}
 
@@ -215,9 +213,7 @@ class Gaussian(OutputHead, nn.Module):
             model.fit(data.cpu().numpy())
             labels = torch.as_tensor(model.labels_, dtype=torch.long, device=data.device)
             one_hot_labels = to_one_hot(labels, self.num_components)
-            self.means.set_(max_likeli_means(
-                data, one_hot_labels, one_hot_labels.sum(0)
-            ))
+            self.means.set_(max_likeli_means(data, one_hot_labels, one_hot_labels.sum(0)))
         else:
             labels = None
             self.means.normal_()
@@ -268,30 +264,73 @@ class Gaussian(OutputHead, nn.Module):
 
         return samples.view(*shape, -1)
 
-    def maximize(self, sequences, gamma, batch):
-        denom = gamma.sum(0)
-        means = max_likeli_means(sequences, gamma, denom)
-        covars = max_likeli_covars(
-            sequences, gamma, denom, self.means if batch else means, self.covariance
-        )
-        return {'means': means, 'covars': covars, 'count': sequences.size(0)}
+    def maximize(self, data, gamma, batch):
+        state_sums = gamma.sum(0) + torch.finfo(torch.float).eps
+
+        result = {}
+        # Always include this such that it can be extracted from the GMMEngine
+        result['state_sums'] = state_sums
+
+        if batch:
+            result['means'] = max_likeli_means(data, gamma)
+            result['count'] = data.size(0)
+            # We can also precompute some things for the covariance computation in the end - we
+            # cannot use the `max_likeli_covars` method as it does not work properly for batches
+            result['covars_x_sq'] = torch.matmul(gamma.t(), data * data)
+            result['covars_xm_wo_means'] = torch.matmul(gamma.t(), data)
+        else:
+            means = max_likeli_means(data, gamma, state_sums)
+            result['means'] = means
+            result['covars'] = max_likeli_covars(data, gamma, state_sums, means, self.covariance)
+
+        return result
 
     def update(self, current, previous=None):
         if previous is None:
             return current
 
+        # This is never reached when `maximize` has been called with `batch = False` - we can
+        # therefore assume that the keys from the `batch == True` branch are avilable
         new_count = previous['count'] + current['count']
         prev_weight = previous['count'] / new_count
         new_weight = current['count'] / new_count
 
-        new_means = previous['means'] * prev_weight + current['means'] * new_weight
-        new_covars = previous['covars'] * prev_weight + current['covars'] * new_weight
+        result = {}
+        result['count'] = new_count
 
-        return {'means': new_means, 'covars': new_covars, 'count': new_count}
+        def add_to_key(key):
+            result[key] = previous[key] * prev_weight + current[key] * new_weight
+
+        add_to_key('means')
+        add_to_key('state_sums')
+        add_to_key('covars_x_sq')
+        add_to_key('covars_xm_wo_means')
+
+        return result
 
     def apply(self, update):
-        self.means.set_(update['means'])
-        self.covars.set_(update['covars'])
+        if 'count' not in update:
+            # In this case, no batching has been performed, update is easy
+            self.means.set_(update['means'])
+            self.covars.set_(update['covars'])
+        else:
+            # In this case, batching has been performed
+            denom = update['state_sums'].unsqueeze(1)
+            means = update['means'] / denom
+
+            # Now compute covariance
+            x_sq = update['covars_x_sq'] / denom
+            m_sq = means * means
+            xm = means * update['covars_xm_wo_means'] / denom
+            covars = x_sq - 2 * xm + m_sq + 1e-6 # regularization
+
+            if self.covariance == 'spherical':
+                covars = covars.mean(1)
+            elif self.covariance == 'diag-shared':
+                covars = covars.mean(0)
+
+            self.means.set_(means)
+            self.covars.set_(covars)
 
     def _get_full_covariance_matrix(self, i):
         if self.covariance == 'diag':

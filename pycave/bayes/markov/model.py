@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.distributions as dist
 from torch.nn.utils.rnn import PackedSequence, pack_sequence
 import pyblaze.nn as xnn
-from pycave.bayes.utils import power_iteration
+from pycave.bayes._internal.utils import power_iteration
 from .config import MarkovModelConfig
 from .engine import MarkovModelEngine
 

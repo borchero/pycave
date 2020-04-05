@@ -7,9 +7,12 @@ Bayesian Models
 Gaussian Mixture Model
 ----------------------
 
-.. automodule:: pycave.bayes.gmm
+.. automodule:: pycave.bayes.gmm.config
     :members:
     :exclude-members: is_valid
+
+.. automodule:: pycave.bayes.gmm.model
+    :members:
 
 Markov Model
 ------------

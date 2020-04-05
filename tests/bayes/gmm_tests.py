@@ -84,7 +84,7 @@ class TestGMM(unittest.TestCase):
         gmm = GMM(config)
         np.random.seed(42)
         gmm.reset_parameters(data)
-        gmm.fit(data, batch_size=1024)
+        gmm.fit(data.chunk(16))
 
         order = gmm.component_weights.argsort()
 

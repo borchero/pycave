@@ -11,11 +11,6 @@ class HMMConfig(xnn.Config):
     The number of states in the hidden Markov model.
     """
 
-    symmetric: bool = False
-    """
-    Whether to use a symmetric transition probability matrix.
-    """
-
     output: str = 'gaussian'
     """
     The type of output that the HMM generates. Currently must be one of the following:

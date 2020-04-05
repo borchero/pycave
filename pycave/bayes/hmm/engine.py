@@ -2,7 +2,8 @@ import torch
 from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
 import pyblaze.nn as xnn
 from pyblaze.utils.stdlib import flatten
-from pycave.bayes.utils import packed_drop_first, packed_drop_last, packed_get_first, normalize
+from pycave.bayes._internal.utils import packed_drop_first, packed_drop_last, packed_get_first, \
+    normalize
 
 class HMMEngine(xnn.BaseEngine):
     """
@@ -73,9 +74,6 @@ class HMMEngine(xnn.BaseEngine):
         else:
             self.best_nll = nll
             self.patience = 0
-
-        # Clear the cache to move data from the GPU
-        self.cache = None
 
     def after_training(self):
         # Clear the cache
@@ -151,11 +149,10 @@ class HMMEngine(xnn.BaseEngine):
         return {'neg_log_likelihood': value}
 
     def collate_predictions(self, predictions):
-        assert len(predictions) > 0
-
         sample = predictions[0]
+
         if 'nll' in sample:
-            # Only negative-log-likelihood, divide by the number of datapoints
+            # Only negative log-likelihood, divide by the number of datapoints
             nll_sum = sum([p['nll'] for p in predictions])
             n = sum([p['n'] for p in predictions])
             return {'neg_log_likelihood': nll_sum / n}

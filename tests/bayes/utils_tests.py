@@ -3,7 +3,8 @@ import numpy as np
 import torch
 import torch.distributions as dist
 from sklearn.mixture import GaussianMixture
-from pycave.bayes.utils import log_normal, log_responsibilities, packed_get_last, packed_drop_last
+from pycave.bayes._internal.utils import log_normal, log_responsibilities, packed_get_last, \
+    packed_drop_last
 
 class TestUtils(unittest.TestCase):
     """

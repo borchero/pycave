@@ -1,6 +1,6 @@
 import torch
 import pyblaze.nn as xnn
-from pycave.bayes.utils import normalize
+from pycave.bayes._internal.utils import normalize
 
 class MarkovModelEngine(xnn.BaseEngine):
     """
