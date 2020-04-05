@@ -15,6 +15,9 @@ class GMMEngine(xnn.BaseEngine):
         self.requires_batching = None
         self.epoch = None
 
+    def supports_multiple_gpus(self):
+        return False
+
     def before_training(self, _, __):
         self.best_nll = float('inf')
 

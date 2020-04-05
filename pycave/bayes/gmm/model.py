@@ -12,6 +12,33 @@ class GMM(xnn.Estimator, xnn.Configurable, nn.Module):
     The GMM represents a mixture of a fixed number of multivariate gaussian distributions. This
     class may be used to find clusters whenever you expect data to be generated from a (fixed-size)
     set of gaussian distributions.
+
+    In addition to the methods documented below, the GMM provides the following methods as provided
+    by the `estimator mixin <https://bit.ly/2wiUB1i>`_.
+
+    `fit(...)`
+        Optimizes the model's parameters.
+
+    `evaluate(...)`
+        Computes the per-datapoint negative log-likelihood of the given data.
+
+    `predict(...)`
+        Computes the probability distribution over components for each datapoint. An argmax over
+        the component dimension thus yields the most likely states.
+
+    The parameters that may be passed to the functions can be derived from the
+    `engine documentation <https://bit.ly/3bYHhOV>`_. The data needs, however, not be passed as a
+    PyTorch data loader but all methods also accept the following instead:
+
+    * A single tensor (interpreted as a single batch of datapoints)
+    * A list of tensors (interpreted as batches of datapoints)
+
+    Additionally, the methods allow the following keyword arguments:
+
+    `fit(...)`
+        eps: float, default: 1e-7
+            The minimum per-datapoint difference in the negative log-likelihood to consider a
+            model "better", thus indicating convergence.
     """
 
     __config__ = GMMConfig
@@ -81,64 +108,6 @@ class GMM(xnn.Estimator, xnn.Configurable, nn.Module):
         )
         return log_resp.exp(), -log_likeli
 
-    def fit(self, *args, **kwargs):
-        """
-        Optimizes the HMM's parameters according to some data. This method accepts a multitude of
-        parameters which are documented `here <https://bit.ly/39FoKpe>`_. The first parameter of
-        this method must be the data. By default, data should be given as PyTorch data loader.
-        However, in order to make calling this function easier for simple use cases, you can also
-        supply one of the following instead.
-
-        * A single tensor (interpreted as a single batch of datapoints)
-        * A list of tensors (interpreted as batches of datapoints)
-
-        Additional parameters are documented below.
-
-        Parameters
-        ----------
-        eps: float, default: 1e-7
-            The minimum per-datapoint difference in the negative log-likelihood to consider a
-            model "better", thus indicating convergence.
-
-        Returns
-        -------
-        pyblaze.nn.History
-            A history object with a `neg_log_likelihood` attribute describing the development of
-            the negative log-likelihood over the course of training.
-        """
-        data = self._process_input(args[0])
-        return super().fit(data, *args[1:], **kwargs)
-
-    def evaluate(self, *args, **kwargs):
-        """
-        Returns the negative log-likelihood of the given data according to the model's parameters.
-        The data may be given in the same way as for the :meth:`fit` method.
-
-        Returns
-        -------
-        pyblaze.nn.Evaluation
-            An evaluation object where the `neg_log_likelihood` property yields the per-datapoint
-            negative log-likelihood.
-        """
-        data = self._process_input(args[0])
-        return super().evaluate(data, *args[1:], **kwargs)
-
-    def predict(self, *args, **kwargs):
-        """
-        Returns a distribution over components of the GMM indicating the probability that a
-        datapoint has been sampled from the respective component. Running argmax over the last
-        dimension yields the most likely components for the given data. The data may be given in the
-        same way as for the :meth:`fit` method.
-
-        Returns
-        -------
-        torch.Tensor [N, K]
-            The distribution of every datapoint over all components (number of datapoints N,
-            number of components K).
-        """
-        data = self._process_input(args[0])
-        return super().predict(data, *args[1:], **kwargs)
-
     def sample(self, n, return_components=False):
         """
         Samples a given number of samples from the GMM.
@@ -171,7 +140,7 @@ class GMM(xnn.Estimator, xnn.Configurable, nn.Module):
         generator = dist.Categorical(self.component_weights)
         return generator.sample((num_samples,))
 
-    def _process_input(self, data):
+    def prepare_input(self, data):
         if isinstance(data, torch.Tensor):
             return [data]
         return data

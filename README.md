@@ -2,18 +2,25 @@
 
 ![PyPi](https://img.shields.io/pypi/v/pycave?label=version)
 
-PyCave provides well-known machine learning models with strong GPU acceleration in PyTorch. Its
-goal is not to provide a comprehensive collection of models or neural network layers, but rather
-complement other open-source libraries. All models are implemented based on [PyBlaze](https://github.com/borchero/pyblaze),
-enabling straightforward training on GPUs and a neural-network-like training interface.
+PyCave provides well-known machine learning models for the usage with large-scale datasets. This is
+achieved by leveraging PyTorch's capability to easily perform computations on a GPU as well as
+implementing batch-wise training for all models.
+
+As a result, PyCave's models are able to work with datasets orders of magnitudes larger than
+datasets that are commonly used with Sklearn. At the same time, PyCave provides an API that is very
+familiar both to users of Sklearn and PyTorch.
+
+Internally, PyCave's capabilities are heavily supported by [PyBlaze](https://github.com/borchero/pyblaze) which enables seamless batch-wise GPU training without additional code. 
 
 ## Features
 
-PyCave currently includes the following models to be run on the GPU:
+PyCave currently includes the following models:
 
-* `pycave.bayes.GMM`: [Gaussian Mixture Models](https://en.wikipedia.org/wiki/Mixture_model#Gaussian_mixture_model), optionally trained via mini-batches if the GPU memory is too small to fit the data. Mini-batch training should *not* impact convergence. Initialization is performed using K-means, optionally on a subset of the data as it is comparatively slow.
-* `pycave.bayes.MarkovModel`: [Markov Models](https://en.wikipedia.org/wiki/Markov_model) able to learn transition probabilities from a sequence of discrete states.
-* `pycave.bayes.HMM`: [Hidden Markov Models](https://en.wikipedia.org/wiki/Hidden_Markov_model) with discrete and Gaussian emissions.
+* `pycave.bayes.GMM`: [Gaussian Mixture Models](https://en.wikipedia.org/wiki/Mixture_model#Gaussian_mixture_model)
+* `pycave.bayes.HMM`: [Hidden Markov Models](https://en.wikipedia.org/wiki/Hidden_Markov_model) with discrete and Gaussian emissions
+* `pycave.bayes.MarkovModel`: [Markov Models](https://en.wikipedia.org/wiki/Markov_model)
+
+All of these models can be trained on a (single) GPU and using batches of data.
 
 ## Installation
 
@@ -25,22 +32,7 @@ pip install pycave
 
 ## Quickstart
 
-Using PyCave is really easy if you are familiar with PyTorch and/or Sklearn. PyCave provides both, an interface closely oriented towards PyTorch's neural network training loop and Sklearn's minimal interface for estimators. Both of these features are essentially provided by [PyBlaze](https://github.com/borchero/pyblaze).
-
-A common example is training a GMM. You can initialize it as follows and simply fit it from a `torch.Tensor`:
-
-```python
-from pycave.bayes import GMM
-
-gmm = GMM(num_components=100, num_features=32, covariance='spherical')
-gmm.fit(data_tensor)
-```
-
-You can then use the GMM's instance methods for inference:
-
-* `gmm.evaluate` computes the negative log-likelihood of some data.
-* `gmm.predict` returns the indices of most likely components for some data.
-* `gmm.sample` samples a given number of samples from the GMM.
+A simple guide is available [in the documentation](https://pycave.borchero.com/guides/quickstart.html).
 
 ## Benchmarks
 

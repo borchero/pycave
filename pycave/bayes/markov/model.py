@@ -12,6 +12,38 @@ class MarkovModel(xnn.Estimator, xnn.Configurable, nn.Module):
     The MarkovModel models a simple MarkovChain with a fixed set of states. You may use this class
     whenever states are known and transition probabilities are the only quantity of interest. In
     case of any additional output from the states, consider using the `HMM` model.
+
+    In addition to the methods documented below, the Markov model provides the following methods
+    as provided by the `estimator mixin <https://bit.ly/2wiUB1i>`_.
+
+    `fit(...)`
+        Optimizes the model's parameters.
+
+    `evaluate(...)`
+        Computes the per-datapoint negative log-likelihood of the given data.
+
+    `predict(...)`
+        Not available.
+
+    The parameters that may be passed to the functions can be derived from the
+    `engine documentation <https://bit.ly/3bYHhOV>`_. The data needs, however, not be passed as a
+    PyTorch data loader but all methods also accept the following instead:
+
+    * A single packed sequence
+    * A single 2-D tensor (interpreted as batch of sequences)
+    * A list of packed sequences
+    * A list of 2-D tensors (interpreted as batches of sequences)
+
+    Additionally, the methods allow the following keyword arguments:
+
+    `fit(...)`
+        * symmetric: bool, default: False
+            Whether a symmetric transition matrix should be learnt from the data (e.g. useful when
+            training on random walks from an undirected graph).
+        * teleport_alpha: float, default: 0
+            The probability of random teleportations from one state to a randomly selected other one
+            upon every transition. Generally "spaces out" probabilities in the transition
+            probability matrix.
     """
 
     __config__ = MarkovModelConfig
@@ -77,51 +109,6 @@ class MarkovModel(xnn.Estimator, xnn.Configurable, nn.Module):
         # 3) Compute final negative log-likelihood
         return -log_likeli.logsumexp(-1).sum()
 
-    def fit(self, *args, **kwargs):
-        """
-        Optimizes the model's parameters. Many parameters are not described here but can be inferred
-        from `here <https://bit.ly/39FoKpe>`_. By default, data must be given as PyTorch data
-        loader. However, in order to make calling this function easier for simple use cases, you
-        can also supply the following instead:
-
-        * A single packed sequence
-        * A single 2-D tensor (interpreted as batch of sequences)
-        * A list of packed sequences
-        * A list of 2-D tensors (interpreted as batches of sequences)
-
-        Apart from the data given as first parameter, the following keyword arguments may be given:
-
-        Parameters
-        ----------
-        symmetric: bool, default: False
-            Whether a symmetric transition matrix should be learnt from the data (e.g. useful
-            when training on random walks from an undirected graph).
-        teleport_alpha: float, default: 0
-            The probability of random teleportations from one state to a randomly selected other
-            one upon every transition. Generally "spaces out" probabilities in the transition
-            probability matrix.
-
-        Returns
-        -------
-        pyblaze.nn.History
-            A history object carrying no information but the training time (`duration` attribute).
-        """
-        data = self._process_input(args[0])
-        return super().fit(data, *args[1:], **kwargs)
-
-    def evaluate(self, *args, **kwargs):
-        """
-        Computes the negative log-likelihood of the data under this model.
-
-        Returns
-        -------
-        pyblaze.nn.Evaluation
-            An evaluation object where the `neg_log_likelihood` property yields the per-datapiont
-            negative log-likelihood.
-        """
-        data = self._process_input(args[0])
-        return super().evaluate(data, *args[1:], **kwargs)
-
     def sample(self, num_sequences, sequence_length):
         """
         Samples the given number of sequences with the given length from the model's underlying
@@ -171,11 +158,7 @@ class MarkovModel(xnn.Estimator, xnn.Configurable, nn.Module):
         """
         return power_iteration(self.transition_probs.t(), max_iterations=max_iterations)
 
-    def _sample_initial_states(self, num_samples):
-        generator = dist.Categorical(self.initial_probs)
-        return generator.sample((num_samples,))
-
-    def _process_input(self, data):
+    def prepare_input(self, data):
         if isinstance(data, PackedSequence):
             return [data]
         if isinstance(data, torch.Tensor):
@@ -183,6 +166,10 @@ class MarkovModel(xnn.Estimator, xnn.Configurable, nn.Module):
         if isinstance(data, (list, tuple)) and isinstance(data[0], torch.Tensor):
             return [pack_sequence(d) for d in data]
         return data
+
+    def _sample_initial_states(self, num_samples):
+        generator = dist.Categorical(self.initial_probs)
+        return generator.sample((num_samples,))
 
     def __repr__(self):
         return f'{self.__class__.__name__}(num_states={self.num_states})'

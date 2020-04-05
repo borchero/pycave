@@ -12,6 +12,9 @@ class MarkovModelEngine(xnn.BaseEngine):
 
         self.cache = None
 
+    def supports_multiple_gpus(self):
+        return False
+
     def before_epoch(self, _, __):
         # Initialize cache
         self.cache = {

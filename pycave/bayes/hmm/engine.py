@@ -19,6 +19,9 @@ class HMMEngine(xnn.BaseEngine):
         self.patience = 0
         self.epoch = None
 
+    def supports_multiple_gpus(self):
+        return False
+
     def before_training(self, _, __):
         # Set up early stopping criterion
         self.best_nll = float('inf')

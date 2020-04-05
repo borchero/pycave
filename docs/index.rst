@@ -3,18 +3,26 @@ PyCave Documentation
 
 .. image:: https://img.shields.io/pypi/v/pycave?label=version
 
-PyCave provides well-known machine learning models with strong GPU acceleration in PyTorch. Its
-goal is not to provide a comprehensive collection of models or neural network layers, but rather
-complement other open-source libraries.
+PyCave provides well-known machine learning models for the usage with large-scale datasets. This is
+achieved by leveraging PyTorch's capability to easily perform computations on a GPU as well as
+implementing batch-wise training for all models.
 
-Features
---------
+As a result, PyCave's models are able to work with datasets orders of magnitudes larger than
+datasets that are commonly used with Sklearn. At the same time, PyCave provides an API that is very
+familiar both to users of Sklearn and PyTorch.
 
-PyCave currently includes the following models to be run on the GPU:
+Internally, PyCave's capabilities are heavily supported by `PyBlaze <https://github.com/borchero/pyblaze>`_ which enables seamless batch-wise GPU training without additional code. 
 
-* `Gaussian Mixture Models <https://en.wikipedia.org/wiki/Mixture_model#Gaussian_mixture_model>`_, optionally trained via mini-batches if the GPU memory is too small to fit the data. Mini-batch training should *not* impact convergence. Initialization is performed using K-means, optionally on a subset of the data as it is comparatively slow.
-* `Markov Models <https://en.wikipedia.org/wiki/Markov_model>`_ able to learn transition probabilities from a sequence of discrete states.
-* `Hidden Markov Models <https://en.wikipedia.org/wiki/Hidden_Markov_model>`_ with discrete and Gaussian emissions.
+Models
+------
+
+PyCave currently includes the following models:
+
+* :code:`pycave.bayes.GMM`: `Gaussian Mixture Models <https://en.wikipedia.org/wiki/Mixture_model#Gaussian_mixture_model>`_
+* :code:`pycave.bayes.HMM`: `Hidden Markov Models <https://en.wikipedia.org/wiki/Hidden_Markov_model>`_ with discrete and Gaussian emissions
+* :code:`pycave.bayes.MarkovModel`: `Markov Models <https://en.wikipedia.org/wiki/Markov_model>`_
+
+All of these models can be trained on a (single) GPU and using batches of data.
 
 .. toctree::
    :glob:
