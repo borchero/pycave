@@ -40,7 +40,7 @@ In order to demonstrate the potential of PyCave, we compared the runtime of PyCa
 
 We train on 100k 128-dimensional datapoints sampled from a "ground truth" GMM with 512 components. PyCave's GMM and Sklearn should then minimize the negative log-likelihood (NLL) of the data. For our GMM, convergence was reached when converging on a per-datapoint NLL of 0.01. For Sklearn, we had to set it to 1e-5. Initialization was random instead of K-Means initialization as K-Means needs to be run via Sklearn, hence on the CPU.
 
-| Implementation | Avg. Train Duration | Speedup | Speedup/Iteration |
+| Implementation | Avg. Train Duration | Speedup |
 | --- | --- | --- |
 | Sklearn (CPU) | 299.04s | - | 
 | PyCave (CPU) | 31.29s | **x9.56** |
