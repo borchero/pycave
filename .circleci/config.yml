@@ -10,7 +10,7 @@ jobs:
 
     run-tests:
         docker:
-        -   image: borchero/pyblaze:latest
+        -   image: borchero/pycave:latest
         steps:
         -   checkout
         -   run: |

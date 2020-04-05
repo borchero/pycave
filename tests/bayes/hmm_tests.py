@@ -18,7 +18,7 @@ class TestHMM(unittest.TestCase):
 
         # 1) Simple forward application
         seq = torch.as_tensor([[2, 2, 0], [1, 2, 1]])
-        out = hmm.predict(seq)
+        out = hmm.predict(seq, parallel=False)
 
         self.assertAlmostEqual(out[0, 0].item(), 0.2213, places=4)
         self.assertAlmostEqual(out[0, 1].item(), 0.7787, places=4)
@@ -30,7 +30,7 @@ class TestHMM(unittest.TestCase):
         seqs = torch.nn.utils.rnn.pack_sequence([
             torch.as_tensor([1, 2, 1, 1]), torch.as_tensor([2, 2, 0]), torch.as_tensor([0, 1])
         ])
-        out = hmm.predict(seqs)
+        out = hmm.predict(seqs, parallel=False)
 
         self.assertAlmostEqual(out[0, 0].item(), 0.9550, places=4)
         self.assertAlmostEqual(out[0, 1].item(), 0.0450, places=4)
@@ -45,7 +45,7 @@ class TestHMM(unittest.TestCase):
         seqs = torch.nn.utils.rnn.pack_sequence([
             torch.as_tensor([0, 1]), torch.as_tensor([1, 2, 1, 1]), torch.as_tensor([2, 2, 0])
         ], enforce_sorted=False)
-        out = hmm.predict(seqs)
+        out = hmm.predict(seqs, parallel=False)
 
         self.assertAlmostEqual(out[0, 0].item(), 0.9082, places=4)
         self.assertAlmostEqual(out[0, 1].item(), 0.0918, places=4)
@@ -67,7 +67,7 @@ class TestHMM(unittest.TestCase):
 
         # 1) Simple smoothing
         seq = torch.as_tensor([[2, 2, 0], [1, 2, 1]])
-        out = hmm.predict(seq, smooth=True)
+        out = hmm.predict(seq, smooth=True, parallel=False)
 
         self.assertTrue(torch.allclose(
             out[0], torch.as_tensor([[0.3847, 0.6153], [0.2156, 0.7844], [0.2213, 0.7787]]),
@@ -82,7 +82,7 @@ class TestHMM(unittest.TestCase):
         seqs = torch.nn.utils.rnn.pack_sequence([
             torch.as_tensor([1, 2, 1, 1]), torch.as_tensor([2, 2, 0]), torch.as_tensor([0, 1])
         ])
-        out = hmm.predict(seqs, smooth=True)
+        out = hmm.predict(seqs, smooth=True, parallel=False)
 
         self.assertTrue(torch.allclose(
             out[0], torch.as_tensor([
@@ -102,7 +102,7 @@ class TestHMM(unittest.TestCase):
         seqs = torch.nn.utils.rnn.pack_sequence([
             torch.as_tensor([0, 1]), torch.as_tensor([1, 2, 1, 1]), torch.as_tensor([2, 2, 0])
         ], enforce_sorted=False)
-        out = hmm.predict(seqs, smooth=True)
+        out = hmm.predict(seqs, smooth=True, parallel=False)
 
         self.assertTrue(torch.allclose(
             out[0], torch.as_tensor([[0.7342, 0.2658], [0.9082, 0.0918]]),
