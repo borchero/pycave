@@ -7,17 +7,17 @@ Bayesian Models
 Gaussian Mixture Model
 ----------------------
 
-.. automodule:: pycave.bayes.gmm.model
+.. autoclass:: pycave.bayes.GMM
     :members:
 
 Markov Model
 ------------
 
-.. automodule:: pycave.bayes.markov.model
+.. autoclass:: pycave.bayes.MarkovModel
     :members:
 
 Hidden Markov Model
 -------------------
 
-.. automodule:: pycave.bayes.hmm.model
+.. autoclass:: pycave.bayes.HMM
     :members:
