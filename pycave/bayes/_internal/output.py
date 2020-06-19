@@ -207,9 +207,7 @@ class Gaussian(OutputHead, nn.Module):
     def reset_parameters(self, data=None, max_iter=100):
         # 1) Means
         if data is not None:
-            model = KMeans(
-                self.num_components, n_init=1, max_iter=max_iter, n_jobs=-1
-            )
+            model = KMeans(self.num_components, n_init=1, max_iter=max_iter)
             model.fit(data.cpu().numpy())
             labels = torch.as_tensor(model.labels_, dtype=torch.long, device=data.device)
             one_hot_labels = to_one_hot(labels, self.num_components)

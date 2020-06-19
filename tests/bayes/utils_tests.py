@@ -118,7 +118,7 @@ class TestUtils(unittest.TestCase):
         x = torch.randn(N, D)
         prior = torch.rand(S)
         prior /= prior.sum()
-        mixture = GaussianMixture(S, 'spherical')
+        mixture = GaussianMixture(S, covariance_type='spherical')
         mixture.means_ = means.numpy()
         mixture.precisions_cholesky_ = np.sqrt(1 / covs.numpy())
         mixture.weights_ = prior.numpy()

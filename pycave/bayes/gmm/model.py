@@ -4,10 +4,9 @@ import torch.distributions as dist
 import pyblaze.nn as xnn
 from pycave.bayes._internal.output import Gaussian
 from pycave.bayes._internal.utils import log_responsibilities
-from .config import GMMConfig
 from .engine import GMMEngine
 
-class GMM(xnn.Estimator, xnn.Configurable, nn.Module):
+class GMM(xnn.Estimator, nn.Module):
     """
     The GMM represents a mixture of a fixed number of multivariate gaussian distributions. This
     class may be used to find clusters whenever you expect data to be generated from a (fixed-size)
@@ -41,15 +40,35 @@ class GMM(xnn.Estimator, xnn.Configurable, nn.Module):
             model "better", thus indicating convergence.
     """
 
-    __config__ = GMMConfig
     __engine__ = GMMEngine
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, num_components, num_features, covariance='diag'):
         """
-        Initializes a new GMM either with a given `GMMConfig` or with the config's parameters passed
-        as keyword arguments.
+        Initializes a new GMM.
+
+        Parameters
+        ----------
+        num_components: int
+            The number of gaussian distributions that make up the GMM.
+        num_features: int
+            The dimensionality of the gaussian distributions.
+        covariance: str, default: 'diag'
+            The type of covariance to use for the gaussian distributions. Must be one of:
+
+            * diag: Diagonal covariance for every component (parameters: `num_features *
+                num_components`).
+            * spherical: Spherical covariance for every component (parameters: `num_components`).
+            * diag-shared: Shared diagonal covariance for all components (parameters:
+                `num_features`).
         """
-        super().__init__(*args, **kwargs)
+        super().__init__()
+
+        if covariance not in ('diag', 'spherical', 'diag-shared'):
+            raise ValueError(f"Invalid covariance type '{covariance}'.")
+
+        self.num_components = num_components
+        self.num_features = num_features
+        self.covariance = covariance
 
         self.component_weights = nn.Parameter(torch.empty(self.num_components), requires_grad=False)
         self.gaussian = Gaussian(self.num_components, self.num_features, self.covariance)

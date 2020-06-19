@@ -5,7 +5,7 @@ from pyblaze.utils.stdlib import flatten
 from pycave.bayes._internal.utils import packed_drop_first, packed_drop_last, packed_get_first, \
     normalize
 
-class HMMEngine(xnn.BaseEngine):
+class HMMEngine(xnn.Engine):
     """
     The HMMEngine can be used to train a hidden Markov models on batches yielded by a data loader.
     """
@@ -134,7 +134,7 @@ class HMMEngine(xnn.BaseEngine):
         return {
             'nll': self.model(data)[1].item(), # just get the nll
             'n': data.data.size(0)
-        }, None
+        }
 
     def predict_batch(self, data, smooth=False):
         return {
@@ -171,9 +171,6 @@ class HMMEngine(xnn.BaseEngine):
         return flatten([
             self._rearrange_prediction_sequence(p) for p in predictions
         ])
-
-    def collate_targets(self, _):
-        return None
 
     def _rearrange_prediction_sequence(self, item):
         gamma = normalize(item['out'][0] * item['out'][1])

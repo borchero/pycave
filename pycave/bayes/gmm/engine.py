@@ -2,7 +2,7 @@ import torch
 import pyblaze.nn as xnn
 from pycave.bayes._internal.utils import normalize
 
-class GMMEngine(xnn.BaseEngine):
+class GMMEngine(xnn.Engine):
     """
     The GMMEngine can be used to train Gaussian mixture models on batches.
     """
@@ -77,7 +77,7 @@ class GMMEngine(xnn.BaseEngine):
         return {
             'nll': self.model(data)[1].item(), # nll
             'n': data.data.size(0)
-        }, None
+        }
 
     def predict_batch(self, data):
         # Get responsibilities and normalize them to get a distribution over components
@@ -98,6 +98,3 @@ class GMMEngine(xnn.BaseEngine):
 
         # In this case, we return the responsibilities
         return torch.cat(predictions)
-
-    def collate_targets(self, _):
-        return None

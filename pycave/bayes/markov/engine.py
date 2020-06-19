@@ -2,7 +2,7 @@ import torch
 import pyblaze.nn as xnn
 from pycave.bayes._internal.utils import normalize
 
-class MarkovModelEngine(xnn.BaseEngine):
+class MarkovModelEngine(xnn.Engine):
     """
     This engine can be used to train a Markov model on batches of data.
     """
@@ -85,10 +85,10 @@ class MarkovModelEngine(xnn.BaseEngine):
             'n': data.data.size(0)
         }
 
-    def predict_batch(self, _):
+    def predict_batch(self, data):
         raise ValueError("Markov models do not support predictions")
 
-    def collate_losses(self, _):
+    def collate_losses(self, losses):
         return {}
 
     def collate_predictions(self, predictions):

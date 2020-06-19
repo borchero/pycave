@@ -4,7 +4,7 @@ import math
 import numpy as np
 import torch
 from sklearn.mixture import GaussianMixture
-from pycave.bayes import GMM, GMMConfig
+from pycave.bayes import GMM
 
 class BenchmarkGMM(unittest.TestCase):
     """
@@ -20,11 +20,11 @@ class BenchmarkGMM(unittest.TestCase):
         """
         Unit test to benchmark the performance of our implementation compared to sklearn.
         """
-        config = GMMConfig(
-            num_components=512,
-            num_features=128,
-            covariance='spherical'
-        )
+        config = {
+            'num_components': 512,
+            'num_features': 128,
+            'covariance': 'spherical'
+        }
 
         samples = self.generate_samples(config, 100_000)
         sklearn_time = np.mean([self.train_sklearn(config, samples) for _ in range(3)])
@@ -42,11 +42,11 @@ class BenchmarkGMM(unittest.TestCase):
         """
         Unit test to benchmark the performance when training on mini batches.
         """
-        config = GMMConfig(
-            num_components=512,
-            num_features=128,
-            covariance='spherical'
-        )
+        config = {
+            'num_components': 512,
+            'num_features': 128,
+            'covariance': 'spherical'
+        }
 
         samples = self.generate_samples(config, 10_000_000)
         samples = samples.repeat(10, 1)
@@ -65,7 +65,7 @@ class BenchmarkGMM(unittest.TestCase):
         """
         tic = time.time()
 
-        generator = GMM(config)
+        generator = GMM(**config)
         weights = torch.rand(config.num_components)
         generator.component_weights.set_(weights / weights.sum())
         generator.gaussian.means.set_(torch.randn(config.num_components, config.num_features))
@@ -88,8 +88,8 @@ class BenchmarkGMM(unittest.TestCase):
         tic = time.time()
 
         gmm = GaussianMixture(
-            config.num_components,
-            config.covariance,
+            config['num_components'],
+            covariance_type=config['covariance'],
             init_params='random',
             tol=1e-5
         )
@@ -109,7 +109,7 @@ class BenchmarkGMM(unittest.TestCase):
         """
         tic = time.time()
 
-        gmm = GMM(config)
+        gmm = GMM(**config)
         if batch_size is not None:
             samples = samples.chunk(int(math.ceil(samples.size(0) / batch_size)))
         history = gmm.fit(samples, gpu=gpu)

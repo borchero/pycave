@@ -1,3 +1,3 @@
-from .gmm import GMM, GMMConfig
-from .hmm import HMM, HMMConfig
-from .markov import MarkovModel, MarkovModelConfig
+from .gmm import GMM
+from .hmm import HMM
+from .markov import MarkovModel

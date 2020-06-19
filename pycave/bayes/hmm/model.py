@@ -5,10 +5,9 @@ import pyblaze.nn as xnn
 from pycave.bayes.markov.model import MarkovModel
 from pycave.bayes._internal.output import Discrete, Gaussian
 from pycave.bayes._internal.utils import normalize, packed_get_last
-from .config import HMMConfig
 from .engine import HMMEngine
 
-class HMM(xnn.Estimator, xnn.Configurable, nn.Module):
+class HMM(xnn.Estimator, nn.Module):
     """
     The HMM represents a hidden Markov model with different kinds of emissions.
 
@@ -52,15 +51,43 @@ class HMM(xnn.Estimator, xnn.Configurable, nn.Module):
             steps of the sequences.
     """
 
-    __config__ = HMMConfig
     __engine__ = HMMEngine
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, num_states, output='gaussian', output_num_states=1, output_dim=1,
+                 output_covariance='diag'):
         """
-        Initialies a new HMM either with a given :class:`HMMConfig` or with the config's parameters
-        passed as keyword arguments.
+        Initialies a new HMM.
+
+        Parameters
+        ----------
+        num_states: int
+            The number of states in the hidden Markov model.
+        output: str, default: 'gaussian'
+            The type of output that the HMM generates. Currently must be one of the following:
+
+                * gaussian: Every state's output is a Gaussian distribution with some mean and
+                    covariance.
+                * discrete: All states have a shared set of discrete output states.
+        output_num_states: int, default: 1
+            The number of output states. Only applies if the output is discrete. Should be given in
+            this case.
+        output_dim: int, default: 1
+            The dimensionality of the gaussian distributions. Only applies if the output is
+            Gaussian. Should be given in this case.
+        output_covariance: str, default: 'diag'
+            The type of covariance to use for the gaussian distributions. The same constraints as
+            for the Gaussian mixture model apply. Only applies if the output is Gaussian.
         """
-        super().__init__(*args, **kwargs)
+        super().__init__()
+
+        if output not in ('gaussian', 'discrete'):
+            raise ValueError(f"Invalid output type '{output}'.")
+
+        self.num_states = num_states
+        self.output = output
+        self.output_num_states = output_num_states
+        self.output_dim = output_dim
+        self.output_covariance = output_covariance
 
         self.markov = MarkovModel(num_states=self.num_states)
 

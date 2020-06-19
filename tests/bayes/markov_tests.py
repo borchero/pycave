@@ -1,6 +1,6 @@
 import unittest
 import torch
-from pycave.bayes import MarkovModel, MarkovModelConfig
+from pycave.bayes import MarkovModel
 
 class TestMarkov(unittest.TestCase):
     """
@@ -11,9 +11,7 @@ class TestMarkov(unittest.TestCase):
         """
         Test Markov model by restoring an existing one.
         """
-        config = MarkovModelConfig(num_states=4)
-
-        markov_reference = MarkovModel(config)
+        markov_reference = MarkovModel(num_states=4)
         markov_reference.initial_probs.set_(torch.as_tensor([
             0.5, 0.1, 0.2, 0.2
         ]))
@@ -27,7 +25,7 @@ class TestMarkov(unittest.TestCase):
         torch.manual_seed(21)
         samples = markov_reference.sample(50_000, 20)
 
-        markov = MarkovModel(config)
+        markov = MarkovModel(num_states=4)
         markov.fit(samples)
 
         self.assertTrue(torch.allclose(

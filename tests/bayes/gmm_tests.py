@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import torch
-from pycave.bayes import GMM, GMMConfig
+from pycave.bayes import GMM
 
 class TestGMM(unittest.TestCase):
     """
@@ -12,11 +12,13 @@ class TestGMM(unittest.TestCase):
         """
         Test GMM with spherical covariance by restoring an existing GMM.
         """
-        config = GMMConfig(
-            num_components=5, num_features=2, covariance='spherical'
-        )
+        config = {
+            'num_components': 5,
+            'num_features': 2,
+            'covariance': 'spherical'
+        }
 
-        gmm_reference = GMM(config)
+        gmm_reference = GMM(**config)
         gmm_reference.component_weights.set_(torch.as_tensor(
             [0.1, 0.15, 0.2, 0.25, 0.3]
         ))
@@ -30,7 +32,7 @@ class TestGMM(unittest.TestCase):
         torch.manual_seed(42)
         data = gmm_reference.sample(16536)
 
-        gmm = GMM(config)
+        gmm = GMM(**config)
         np.random.seed(42)
         gmm.reset_parameters(data)
         gmm.fit(data)
@@ -63,11 +65,13 @@ class TestGMM(unittest.TestCase):
         Test GMM with shared diagonal covariance by restoring an existing GMM using mini-batch
         training.
         """
-        config = GMMConfig(
-            num_components=5, num_features=2, covariance='diag-shared'
-        )
+        config = {
+            'num_components': 5,
+            'num_features': 2,
+            'covariance': 'diag-shared'
+        }
 
-        gmm_reference = GMM(config)
+        gmm_reference = GMM(**config)
         gmm_reference.component_weights.set_(torch.as_tensor(
             [0.1, 0.15, 0.2, 0.25, 0.3]
         ))
@@ -81,7 +85,7 @@ class TestGMM(unittest.TestCase):
         torch.manual_seed(42)
         data = gmm_reference.sample(16384)
 
-        gmm = GMM(config)
+        gmm = GMM(**config)
         np.random.seed(42)
         gmm.reset_parameters(data)
         gmm.fit(data.chunk(16))

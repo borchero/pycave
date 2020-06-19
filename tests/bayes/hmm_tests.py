@@ -1,6 +1,6 @@
 import unittest
 import torch
-from pycave.bayes import HMM, HMMConfig
+from pycave.bayes import HMM
 
 class TestHMM(unittest.TestCase):
     """
@@ -122,13 +122,13 @@ class TestHMM(unittest.TestCase):
         """
         Test Gaussian HMM with spherical covariance by restoring an existing HMM.
         """
-        config = HMMConfig(
-            num_states=3,
-            output_dim=2,
-            output_covariance='spherical'
-        )
+        config = {
+            'num_states': 3,
+            'output_dim': 2,
+            'output_covariance': 'spherical'
+        }
 
-        hmm_reference = HMM(config)
+        hmm_reference = HMM(**config)
 
         hmm_reference.markov.initial_probs.set_(torch.as_tensor(
             [0.75, 0.25, 0], dtype=torch.float
@@ -149,7 +149,7 @@ class TestHMM(unittest.TestCase):
         torch.manual_seed(42)
         sequences = hmm_reference.sample(8192, 8)
 
-        hmm = HMM(config)
+        hmm = HMM(**config)
         hmm.fit(sequences)
 
         order = hmm.markov.initial_probs.argsort(descending=True)
@@ -178,13 +178,13 @@ class TestHMM(unittest.TestCase):
         """
         Test Gaussian HMM with spherical covariance by restoring an existing HMM via batch training.
         """
-        config = HMMConfig(
-            num_states=3,
-            output_dim=2,
-            output_covariance='spherical'
-        )
+        config = {
+            'num_states': 3,
+            'output_dim': 2,
+            'output_covariance': 'spherical'
+        }
 
-        hmm_reference = HMM(config)
+        hmm_reference = HMM(**config)
 
         hmm_reference.markov.initial_probs.set_(torch.as_tensor(
             [0.75, 0.25, 0], dtype=torch.float
@@ -205,7 +205,7 @@ class TestHMM(unittest.TestCase):
         torch.manual_seed(42)
         sequences = hmm_reference.sample(8192, 8)
 
-        hmm = HMM(config)
+        hmm = HMM(**config)
         hmm.fit(sequences.chunk(32))
 
         order = hmm.markov.initial_probs.argsort(descending=True)
@@ -234,13 +234,13 @@ class TestHMM(unittest.TestCase):
         """
         Test Discrete HMM with by restoring an existing HMM.
         """
-        config = HMMConfig(
-            num_states=3,
-            output='discrete',
-            output_num_states=4,
-        )
+        config = {
+            'num_states': 3,
+            'output': 'discrete',
+            'output_num_states': 4
+        }
 
-        hmm_reference = HMM(config)
+        hmm_reference = HMM(**config)
 
         hmm_reference.markov.initial_probs.set_(torch.as_tensor(
             [0.75, 0.25, 0], dtype=torch.float
@@ -260,7 +260,7 @@ class TestHMM(unittest.TestCase):
         torch.manual_seed(21)
         sequences = hmm_reference.sample(16536, 16)
 
-        hmm = HMM(config)
+        hmm = HMM(**config)
         hmm.fit(sequences, epochs=100, eps=1e-7, patience=3)
 
         order = hmm.markov.initial_probs.argsort(descending=True)

@@ -4,10 +4,9 @@ import torch.distributions as dist
 from torch.nn.utils.rnn import PackedSequence, pack_sequence
 import pyblaze.nn as xnn
 from pycave.bayes._internal.utils import power_iteration
-from .config import MarkovModelConfig
 from .engine import MarkovModelEngine
 
-class MarkovModel(xnn.Estimator, xnn.Configurable, nn.Module):
+class MarkovModel(xnn.Estimator, nn.Module):
     """
     The MarkovModel models a simple MarkovChain with a fixed set of states. You may use this class
     whenever states are known and transition probabilities are the only quantity of interest. In
@@ -46,15 +45,20 @@ class MarkovModel(xnn.Estimator, xnn.Configurable, nn.Module):
             probability matrix.
     """
 
-    __config__ = MarkovModelConfig
     __engine__ = MarkovModelEngine
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, num_states):
         """
-        Initializes a new Markov model by passing a `MarkovModelConfig` or the config's
-        configuration parameters as keyword arguments.
+        Initializes a new Markov model.
+
+        Parameters
+        ----------
+        num_states: int
+            The number of states in the Markov model.
         """
-        super().__init__(*args, **kwargs)
+        super().__init__()
+
+        self.num_states = num_states
 
         self.initial_probs = nn.Parameter(
             torch.empty(self.num_states), requires_grad=False
