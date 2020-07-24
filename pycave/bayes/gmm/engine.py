@@ -49,6 +49,10 @@ class GMMEngine(xnn.Engine):
     def after_training(self):
         self.cache = None
 
+    def evaluate(self, data, metrics=None, **kwargs):
+        metrics = {'neg_log_likelihood': lambda x: x}
+        return super().evaluate(data, metrics=metrics, **kwargs)
+
     def train_batch(self, data, eps=0.01):
         # E-step: compute responsibilities
         responsibilities, nll = self.model(data)
@@ -87,14 +91,8 @@ class GMMEngine(xnn.Engine):
         nll = self.cache['neg_log_likelihood']
         return {'neg_log_likelihood': nll}
 
-    def collate_predictions(self, predictions):
-        sample = predictions[0]
-
-        if isinstance(sample, dict):
-            # Only negative log-likelihood
-            nll_sum = sum([p['nll'] for p in predictions])
-            n = sum([p['n'] for p in predictions])
-            return {'neg_log_likelihood': nll_sum / n}
-
-        # In this case, we return the responsibilities
-        return torch.cat(predictions)
+    def collate_evals(self, evals):
+        # Only negative log-likelihood
+        nll_sum = sum([p['nll'] for p in evals])
+        n = sum([p['n'] for p in evals])
+        return torch.as_tensor(nll_sum / n)
