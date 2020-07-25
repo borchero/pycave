@@ -80,7 +80,7 @@ def log_responsibilities(log_probs, comp_priors, return_log_likelihood=False):
     log_resp = posterior - evidence
 
     if return_log_likelihood:
-        return log_resp, evidence.sum()
+        return log_resp, evidence
     return log_resp
 
 

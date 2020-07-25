@@ -38,6 +38,11 @@ class GMM(xnn.Estimator, nn.Module):
         eps: float, default: 0.01
             The minimum per-datapoint difference in the negative log-likelihood to consider a
             model "better", thus indicating convergence.
+
+    `evaluate(...)`
+        reduction: str, default: 'mean'
+            The reduction performed for the negative log-likelihood as for common PyTorch metrics.
+            Must be one of ['mean', 'sum', 'none'].
     """
 
     __engine__ = GMMEngine
@@ -118,14 +123,14 @@ class GMM(xnn.Estimator, nn.Module):
         -------
         torch.Tensor [N, K]
             The responsibilities for each datapoint and component (number of components K).
-        torch.Tensor [1]
-            The negative log-likelihood of the data.
+        torch.Tensor [N]
+            The negative log-likelihood for all data samples.
         """
         probs = self.gaussian.evaluate(data, log=True)
         log_resp, log_likeli = log_responsibilities(
             probs, self.component_weights, return_log_likelihood=True
         )
-        return log_resp.exp(), -log_likeli
+        return log_resp.exp(), -log_likeli.squeeze(-1)
 
     def sample(self, n, return_components=False):
         """

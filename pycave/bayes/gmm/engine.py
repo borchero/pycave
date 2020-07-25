@@ -49,14 +49,22 @@ class GMMEngine(xnn.Engine):
     def after_training(self):
         self.cache = None
 
-    def evaluate(self, data, metrics=None, **kwargs):
-        metrics = {'neg_log_likelihood': lambda x: x}
-        return super().evaluate(data, metrics=metrics, **kwargs)
+    def evaluate(self, data, reduction='mean', **kwargs):
+        def reduce(x):
+            if reduction == 'mean':
+                return x.mean()
+            if reduction == 'sum':
+                return x.sum()
+            return x
+
+        metrics = {'neg_log_likelihood': reduce}
+        result = super().evaluate(data, metrics=metrics, **kwargs)
+        return result['neg_log_likelihood']
 
     def train_batch(self, data, eps=0.01):
         # E-step: compute responsibilities
         responsibilities, nll = self.model(data)
-        nll_ = nll.item() / data.size(0)
+        nll_ = nll.mean().item()
 
         # M-step: maximize
         gaussian_max = self.model.gaussian.maximize(data, responsibilities, self.requires_batching)
@@ -78,10 +86,7 @@ class GMMEngine(xnn.Engine):
         self.cache['eps'] = eps
 
     def eval_batch(self, data):
-        return {
-            'nll': self.model(data)[1].item(), # nll
-            'n': data.data.size(0)
-        }
+        return self.model(data)[1] # NLL for all data samples
 
     def predict_batch(self, data):
         # Get responsibilities and normalize them to get a distribution over components
@@ -90,9 +95,3 @@ class GMMEngine(xnn.Engine):
     def collate_losses(self, _):
         nll = self.cache['neg_log_likelihood']
         return {'neg_log_likelihood': nll}
-
-    def collate_evals(self, evals):
-        # Only negative log-likelihood
-        nll_sum = sum([p['nll'] for p in evals])
-        n = sum([p['n'] for p in evals])
-        return torch.as_tensor(nll_sum / n)
