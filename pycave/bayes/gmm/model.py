@@ -45,7 +45,9 @@ class GMM(xnn.Estimator, nn.Module):
             Must be one of ['mean', 'sum', 'none'].
     """
 
-    __engine__ = GMMEngine
+    @property
+    def engine(self):
+        return GMMEngine(self)
 
     def __init__(self, num_components, num_features, covariance='diag'):
         """

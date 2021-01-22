@@ -51,7 +51,9 @@ class HMM(xnn.Estimator, nn.Module):
             steps of the sequences.
     """
 
-    __engine__ = HMMEngine
+    @property
+    def engine(self):
+        return HMMEngine(self)
 
     def __init__(self, num_states, output='gaussian', output_num_states=1, output_dim=1,
                  output_covariance='diag'):

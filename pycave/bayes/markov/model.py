@@ -45,7 +45,9 @@ class MarkovModel(xnn.Estimator, nn.Module):
             probability matrix.
     """
 
-    __engine__ = MarkovModelEngine
+    @property
+    def engine(self):
+        return MarkovModelEngine(self)
 
     def __init__(self, num_states):
         """
