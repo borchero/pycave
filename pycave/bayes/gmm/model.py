@@ -87,7 +87,7 @@ class GMM(xnn.Estimator, nn.Module):
 
         self.reset_parameters()
 
-    def reset_parameters(self, data=None, max_iter=100):
+    def reset_parameters(self, data=None, max_iter=100, reg=1e-6):
         """
         Initializes the parameters of the GMM, optionally based on some data. If no data is given,
         means are initialized randomly from a gaussian distribution, unit covariances are used and
@@ -103,9 +103,14 @@ class GMM(xnn.Estimator, nn.Module):
         max_iter: int, default: 100
             If data is given and K-Means is run, this defines the maximum number of iterations to
             run K-Means for.
+        reg: float, default: 1e-6
+            A non-negative regularization term to be added to the diagonal of the covariance matrix
+            to ensure that it is positive. If your data contains datapoints which are very close
+            together (i.e. "singleton datapoints"), you may need to increase that regularization
+            factor. This parameter is ignored if no data is provided.
         """
         # 1) Gaussian distributions
-        labels = self.gaussian.reset_parameters(data, max_iter)
+        labels = self.gaussian.reset_parameters(data, max_iter, reg=reg)
 
         # 2) Components
         if labels is None:
