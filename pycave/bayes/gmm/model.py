@@ -38,6 +38,11 @@ class GMM(xnn.Estimator, nn.Module):
         eps: float, default: 0.01
             The minimum per-datapoint difference in the negative log-likelihood to consider a
             model "better", thus indicating convergence.
+        reg: float, default: 1e-6
+            A non-negative regularization term to be added to the diagonal of the covariance matrix
+            to ensure that it is positive. If your data contains datapoints which are very close
+            together (i.e. "singleton datapoints"), you may need to increase that regularization
+            factor.
 
     `evaluate(...)`
         reduction: str, default: 'mean'

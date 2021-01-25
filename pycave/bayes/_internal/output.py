@@ -204,7 +204,7 @@ class Gaussian(OutputHead, nn.Module):
     def num_features(self):
         return self.means.size(1)
 
-    def reset_parameters(self, data=None, max_iter=100):
+    def reset_parameters(self, data=None, max_iter=100, reg=1e-6):
         # 1) Means
         if data is not None:
             model = KMeans(self.num_components, n_init=1, max_iter=max_iter)
@@ -224,7 +224,7 @@ class Gaussian(OutputHead, nn.Module):
             self.covars.set_(
                 max_likeli_covars(
                     data, one_hot_labels, one_hot_labels.sum(0),
-                    self.means, self.covariance
+                    self.means, self.covariance, reg=reg
                 )
             )
 
@@ -262,12 +262,14 @@ class Gaussian(OutputHead, nn.Module):
 
         return samples.view(*shape, -1)
 
-    def maximize(self, data, gamma, batch):
+    def maximize(self, data, gamma, batch, reg=1e-6):
         state_sums = gamma.sum(0) + torch.finfo(torch.float).eps
 
-        result = {}
-        # Always include this such that it can be extracted from the GMMEngine
-        result['state_sums'] = state_sums
+        result = {
+            'reg': reg,
+            # Always include this such that it can be extracted from the GMMEngine
+            'state_sums': state_sums
+        }
 
         if batch:
             result['means'] = max_likeli_means(data, gamma)
@@ -279,7 +281,9 @@ class Gaussian(OutputHead, nn.Module):
         else:
             means = max_likeli_means(data, gamma, state_sums)
             result['means'] = means
-            result['covars'] = max_likeli_covars(data, gamma, state_sums, means, self.covariance)
+            result['covars'] = max_likeli_covars(
+                data, gamma, state_sums, means, self.covariance, reg=reg
+            )
 
         return result
 
@@ -293,8 +297,10 @@ class Gaussian(OutputHead, nn.Module):
         prev_weight = previous['count'] / new_count
         new_weight = current['count'] / new_count
 
-        result = {}
-        result['count'] = new_count
+        result = {
+            'reg': current['reg'],
+            'count': new_count
+        }
 
         def add_to_key(key):
             result[key] = previous[key] * prev_weight + current[key] * new_weight
@@ -320,7 +326,7 @@ class Gaussian(OutputHead, nn.Module):
             x_sq = update['covars_x_sq'] / denom
             m_sq = means * means
             xm = means * update['covars_xm_wo_means'] / denom
-            covars = x_sq - 2 * xm + m_sq + 1e-6 # regularization
+            covars = x_sq - 2 * xm + m_sq + update['reg'] # cached regularization
 
             if self.covariance == 'spherical':
                 covars = covars.mean(1)

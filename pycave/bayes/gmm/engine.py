@@ -61,13 +61,15 @@ class GMMEngine(xnn.Engine):
         result = super().evaluate(data, metrics=metrics, **kwargs)
         return result['neg_log_likelihood']
 
-    def train_batch(self, data, eps=0.01):
+    def train_batch(self, data, eps=0.01, reg=1e-6):
         # E-step: compute responsibilities
         responsibilities, nll = self.model(data)
         nll_ = nll.mean().item()
 
         # M-step: maximize
-        gaussian_max = self.model.gaussian.maximize(data, responsibilities, self.requires_batching)
+        gaussian_max = self.model.gaussian.maximize(
+            data, responsibilities, self.requires_batching, reg=reg
+        )
         component_weights = normalize(gaussian_max['state_sums'])
 
         # Store in cache
