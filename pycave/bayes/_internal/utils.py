@@ -28,9 +28,7 @@ def log_normal(x, means, covars, covariance_type):
 
     if covariance_type == 'diag-shared': # shared diagonal covariance
         num_means = means.size(0)
-        precisions = precisions.view(1, num_features).expand(
-            num_means, num_features
-        )
+        precisions = precisions.view(1, num_features).expand(num_means, num_features)
     elif covariance_type == 'diag': # diagonal covariance
         cov_det = (-precisions.log()).sum(1)
         x_prob = torch.matmul(x * x, precisions.t())
