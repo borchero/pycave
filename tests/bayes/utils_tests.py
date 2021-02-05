@@ -36,7 +36,7 @@ class TestUtils(unittest.TestCase):
             expected.append(e_item)
         expected = torch.as_tensor(expected)
 
-        predicted = log_normal(x, means, covs)
+        predicted = log_normal(x, means, covs, 'diag')
 
         self.assertTrue(
             torch.allclose(expected, predicted, atol=1e-03, rtol=1e-05)
@@ -67,7 +67,7 @@ class TestUtils(unittest.TestCase):
             expected.append(e_item)
         expected = torch.as_tensor(expected)
 
-        predicted = log_normal(x, means, covs)
+        predicted = log_normal(x, means, covs, 'diag-shared')
 
         self.assertTrue(
             torch.allclose(expected, predicted, atol=1e-03, rtol=1e-05)
@@ -99,7 +99,7 @@ class TestUtils(unittest.TestCase):
             expected.append(e_item)
         expected = torch.as_tensor(expected)
 
-        predicted = log_normal(x, means, covs)
+        predicted = log_normal(x, means, covs, 'spherical')
 
         self.assertTrue(
             torch.allclose(expected, predicted, atol=1e-03, rtol=1e-05)
@@ -127,7 +127,7 @@ class TestUtils(unittest.TestCase):
         _, expected = mixture._estimate_log_prob_resp(x.numpy())
         expected = torch.from_numpy(expected)
 
-        probs = log_normal(x, means, covs)
+        probs = log_normal(x, means, covs, 'spherical')
         predicted = log_responsibilities(probs, prior)
 
         self.assertTrue(

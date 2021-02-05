@@ -1,7 +1,7 @@
 import math
 import torch
 
-def log_normal(x, means, covars):
+def log_normal(x, means, covars, covariance_type):
     """
     Computes the log-probability of the given data for multiple multivariate normal distributions
     defined by their means and covariances.
@@ -13,12 +13,10 @@ def log_normal(x, means, covars):
     means: torch.Tensor [K, D]
         The means of the distributions.
     covars: torch.Tensor ([K, D] or [D] or [K])
-        The covariances of the distributions, depending on the covariance type. In the first case,
-        each distribution is assumed to have its own diagonal covariance matrix, in the second case,
-        the covariance matrix is shared among all distributions, and in the last one, the
-        covariance matrix is spherical. The type of covariance is therefore inferred by the size of
-        the input. If the dimension does not fit any of the documented sizes, no error will be
-        thrown but the result is undefined.
+        The covariances of the distributions, depending on the covariance type.
+    covariance_type: str
+        The type of covariance being used (one of 'diag', 'diag-shared', 'diagonal'). The shape of
+        the `covars` argument must align.
 
     Returns
     -------
@@ -28,13 +26,13 @@ def log_normal(x, means, covars):
     num_features = x.size(1)
     precisions = 1 / covars
 
-    if covars.size(0) == num_features: # shared diagonal covariance
+    if covariance_type == 'diag-shared': # shared diagonal covariance
         num_means = means.size(0)
         precisions = precisions.view(1, num_features).expand(
             num_means, num_features
         )
 
-    if precisions.dim() == 2: # diagonal covariance
+    if covariance_type == 'diag': # diagonal covariance
         cov_det = (-precisions.log()).sum(1)
         x_prob = torch.matmul(x * x, precisions.t())
         m_prob = torch.einsum('ij,ij,ij->i', means, means, precisions)

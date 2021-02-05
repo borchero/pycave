@@ -174,6 +174,8 @@ class Gaussian(OutputHead, nn.Module):
         super().__init__()
 
         self.covariance = covariance
+        if self.covariance not in ('diag', 'diag-shared', 'spherical'):
+            raise ValueError("covariance type must be one of ['diag', 'diag-shared', 'spherical']")
 
         self.means = nn.Parameter(
             torch.empty(num_components, num_features),
@@ -232,7 +234,9 @@ class Gaussian(OutputHead, nn.Module):
 
     def evaluate(self, data, log=False):
         shape = data.size()
-        probabilities = log_normal(data.view(-1, shape[-1]), self.means, self.covars)
+        probabilities = log_normal(
+            data.view(-1, shape[-1]), self.means, self.covars, self.covariance
+        )
         result = probabilities.view(*shape[:-1], self.num_components)
 
         if log:
