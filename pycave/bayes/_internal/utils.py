@@ -31,8 +31,7 @@ def log_normal(x, means, covars, covariance_type):
         precisions = precisions.view(1, num_features).expand(
             num_means, num_features
         )
-
-    if covariance_type == 'diag': # diagonal covariance
+    elif covariance_type == 'diag': # diagonal covariance
         cov_det = (-precisions.log()).sum(1)
         x_prob = torch.matmul(x * x, precisions.t())
         m_prob = torch.einsum('ij,ij,ij->i', means, means, precisions)
