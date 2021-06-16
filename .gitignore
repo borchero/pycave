@@ -4,6 +4,7 @@
 # Python
 __pycache__/
 .venv/
+.python-version/
 
 # Jupyter
 .ipynb_checkpoints/
