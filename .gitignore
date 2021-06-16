@@ -1,11 +1,13 @@
 # Editor
-.vscode
+.vscode/
 
-# Hidden Files
-__pycache__
-.ipynb_checkpoints
+# Python
+__pycache__/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
 
 # PyPi Upload
-build
-dist
+dist/
 *.egg-info

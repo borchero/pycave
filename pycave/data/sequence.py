@@ -1,6 +1,7 @@
 from torch.nn.utils.rnn import pack_sequence
 from torch.utils.data import Dataset
 
+
 class SequenceDataset(Dataset):
     """
     SequenceDataset models a set of sequences. It exposes a collation function that packs the
