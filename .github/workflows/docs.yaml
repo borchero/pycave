@@ -1,0 +1,50 @@
+name: Generate Documentation
+on:
+  - release
+  - push
+  - pull_request
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: borchero/pycave:python
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Library
+        run: poetry install --no-interaction --no-ansi
+      - name: Check Spelling
+        run: sphinx-build -W -b spelling docs generated
+      - name: Generate HTML
+        run: sphinx-build -W -b html docs generated
+      - name: Store Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: html
+          path: generated/
+
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'release' }}
+    needs:
+      - build
+    steps:
+      - name: Retrieve Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: html
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Deploy to S3
+        run: aws s3 sync generated s3://pycave.borchero.com --delete --acl public-read
+      - name: Invalidate Cloudfront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${AWS_CLOUDFRONT_DISTRIBUTION} --paths *
+        env:
+          AWS_CLOUDFRONT_DISTRIBUTION: ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION }}

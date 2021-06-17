@@ -1,0 +1,45 @@
+name: Check Code Style
+on:
+  - push
+  - pull_request
+
+jobs:
+  run-black:
+    runs-on: ubuntu-latest
+    container:
+      image: borchero/pycave:python
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Run Black
+        run: black --check pycave
+
+  run-isort:
+    runs-on: ubuntu-latest
+    container:
+      image: borchero/pycave:python
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Run Black
+        run: isort --check pycave
+
+  run-pylint:
+    runs-on: ubuntu-latest
+    container:
+      image: borchero/pycave:python
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Run Black
+        run: pylint pycave
+
+  run-pyright:
+    runs-on: ubuntu-latest
+    container:
+      image: borchero/pycave:node
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Run PyRight
+        run: npm run lint

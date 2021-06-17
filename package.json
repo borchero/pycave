@@ -1,0 +1,9 @@
+{
+  "name": "pycave",
+  "scripts": {
+    "lint": "pyright pycave"
+  },
+  "devDependencies": {
+    "pyright": "^1.1.149"
+  }
+}

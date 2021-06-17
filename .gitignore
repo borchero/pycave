@@ -12,3 +12,6 @@ __pycache__/
 # PyPi Upload
 dist/
 *.egg-info
+
+# Node
+node_modules/
