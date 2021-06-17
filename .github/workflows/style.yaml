@@ -7,39 +7,47 @@ jobs:
   run-black:
     runs-on: ubuntu-latest
     container:
-      image: borchero/pycave:python
+      image: ghcr.io/borchero/poetry:1.1.6
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Install Dependencies
+        run: poetry install --no-root --no-interaction --no-ansi
       - name: Run Black
         run: black --check pycave
 
   run-isort:
     runs-on: ubuntu-latest
     container:
-      image: borchero/pycave:python
+      image: ghcr.io/borchero/poetry:1.1.6
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Run Black
+      - name: Install Dependencies
+        run: poetry install --no-root --no-interaction --no-ansi
+      - name: Run isort
         run: isort --check pycave
 
   run-pylint:
     runs-on: ubuntu-latest
     container:
-      image: borchero/pycave:python
+      image: ghcr.io/borchero/poetry:1.1.6
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Run Black
+      - name: Install Dependencies
+        run: poetry install --no-root --no-interaction --no-ansi
+      - name: Run Pylint
         run: pylint pycave
 
   run-pyright:
     runs-on: ubuntu-latest
     container:
-      image: borchero/pycave:node
+      image: node:16.3.0
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Install Dependencies
+        run: npm ci
       - name: Run PyRight
         run: npm run lint
