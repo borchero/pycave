@@ -1,6 +1,7 @@
 name: Deploy Package
 on:
-  - release
+  - release:
+      types: [published]
 
 jobs:
   build:
