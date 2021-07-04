@@ -1,3 +1,5 @@
-from .gmm import GMM
-from .hmm import HMM
-from .markov import MarkovModel
+from .markov_chain import MarkovChain
+
+__all__ = [
+    "MarkovChain",
+]

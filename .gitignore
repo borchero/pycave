@@ -5,6 +5,7 @@
 __pycache__/
 .venv/
 .python-version
+lightning_logs/
 
 # Jupyter
 .ipynb_checkpoints/
