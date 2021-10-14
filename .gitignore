@@ -6,6 +6,8 @@ __pycache__/
 .venv/
 .python-version
 lightning_logs/
+.pytest_cache/
+.benchmarks/
 
 # Jupyter
 .ipynb_checkpoints/
@@ -16,3 +18,7 @@ dist/
 
 # Node
 node_modules/
+
+# Docs
+docs/**/generated/
+build/

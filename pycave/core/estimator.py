@@ -3,7 +3,30 @@ import inspect
 import pickle
 from abc import ABC
 from pathlib import Path
-from typing import Any, Dict, Generic, get_args, get_origin, Type, TypeVar
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    get_args,
+    get_origin,
+    Optional,
+    Type,
+    TypeVar,
+    Union,
+)
+import numpy as np
+import numpy.typing as npt
+import pytorch_lightning as pl
+import torch
+from pytorch_lightning.plugins import DataParallelPlugin, DDP2Plugin, DDPSpawnPlugin
+from torch.utils.data import DataLoader, Dataset
+from pycave.data import (
+    DistributedTensorBatchSampler,
+    TensorBatchSampler,
+    TensorDataLoader,
+    UnrepeatedDistributedTensorBatchSampler,
+)
 from .exception import NotFittedError
 from .module import ConfigModule
 
@@ -16,58 +39,47 @@ class Estimator(Generic[M], ABC):
     Base estimator class from which all PyCave estimators should inherit.
     """
 
-    @classmethod
-    def load(cls: Type[E], path: Path) -> E:
-        """
-        Loads the estimator and (if available) the fitted model. See :meth:`save` for more
-        information about the required filenames for loading.
+    def __init__(
+        self,
+        *,
+        batch_size: Optional[int] = None,
+        num_workers: int = 0,
+        verbose: bool = False,
+        default_params: Optional[Dict[str, Any]] = None,
+        user_params: Optional[Dict[str, Any]] = None,
+        overwrite_params: Optional[Dict[str, Any]] = None,
+    ):
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.verbose = verbose
+        self._trainerparams_user = user_params
+        self._trainerparams = {
+            **(default_params or {}),
+            **(user_params or {}),
+            **(overwrite_params or {}),
+        }
 
-        Args:
-            path: The directory from which to load the estimator.
-
-        Returns:
-            The loaded estimator, either fitted or not, depending on the availability of the
-            :code:`config.json` file.
-        """
-        estimator = cls()
-        with (path / "estimator.pickle").open("rb") as f:
-            estimator.set_params(pickle.load(f))  # type: ignore
-
-        if (path / "config.json").exists():
-            model_cls = cls._get_model_class()
-            model = model_cls.load(path)
-            estimator.load_model(model)
-
-        return estimator
-
-    @classmethod
-    def _get_model_class(cls: Type[E]) -> Type[M]:
-        for base in cls.__orig_bases__:  # type: ignore
-            if get_origin(base) == Estimator:
-                args = get_args(base)
-                if not args:
-                    raise ValueError(
-                        f"`{cls.__name__} does not provide a generic parameter for `Estimator`"
-                    )
-                return get_args(base)[0]
-        raise ValueError(f"`{cls.__name__}` does not inherit from `Estimator`")
-
-    def __init__(self):
-        self.model_: M
+        self._trainer: pl.Trainer
+        # We have this as private and public property to properly generate documentation.
+        self._model: M
 
     @property
-    def is_fitted(self) -> bool:
+    def model_(self) -> M:
         """
-        Checks whether the estimator is already fitted.
+        The fitted PyTorch module containing all estimated parameters.
+        """
+        return self._model
 
-        Returns:
-            A boolean whether the estimator has been fitted.
-        """
+    @property
+    def _is_fitted(self) -> bool:
         try:
             getattr(self, "model_")
             return True
         except NotFittedError:
             return False
+
+    # ---------------------------------------------------------------------------------------------
+    # PERSISTENCE
 
     def load_model(self, model: M) -> None:
         """
@@ -78,15 +90,14 @@ class Estimator(Generic[M], ABC):
             model: The model to load. In case, this estimator is already fitted, this model
                 overrides the existing fitted model.
         """
-        self.model_ = model
+        self._model = model
 
     def save(self, path: Path) -> None:
         """
-        Saves the estimator to the provided directory. It saves a file named
-        :code:`estimator.pickle` for the configuration of the estimator and additional files for
-        the fitted model (if applicable). For more information on the files saved for the fitted
-        model or for more customization, look at :meth:`get_params` and
-        :meth:`pycave.core.ConfigModule.save`.
+        Saves the estimator to the provided directory. It saves a file named ``estimator.pickle``
+        for the configuration of the estimator and additional files for the fitted model (if
+        applicable). For more information on the files saved for the fitted model or for more
+        customization, look at :meth:`get_params` and :meth:`pycave.core.ConfigModule.save`.
 
         Args:
             path: The directory to which all files should be saved.
@@ -105,8 +116,35 @@ class Estimator(Generic[M], ABC):
         with (path / "estimator.pickle").open("wb+") as f:
             pickle.dump(self.get_params(), f)
 
-        if self.is_fitted:
+        if self._is_fitted:
             self.model_.save(path)
+
+    @classmethod
+    def load(cls: Type[E], path: Path) -> E:
+        """
+        Loads the estimator and (if available) the fitted model. See :meth:`save` for more
+        information about the required filenames for loading.
+
+        Args:
+            path: The directory from which to load the estimator.
+
+        Returns:
+            The loaded estimator, either fitted or not, depending on the availability of the
+            ``config.json`` file.
+        """
+        estimator = cls()
+        with (path / "estimator.pickle").open("rb") as f:
+            estimator.set_params(pickle.load(f))  # type: ignore
+
+        if (path / "config.json").exists():
+            model_cls = cls._get_model_class()
+            model = model_cls.load(path)
+            estimator.load_model(model)
+
+        return estimator
+
+    # ---------------------------------------------------------------------------------------------
+    # SKLEARN INTERFACE
 
     def get_params(self, deep: bool = True) -> Dict[str, Any]:  # pylint: disable=unused-argument
         """
@@ -137,9 +175,109 @@ class Estimator(Generic[M], ABC):
             setattr(self, key, value)
         return self
 
+    # ---------------------------------------------------------------------------------------------
+    # DATA HANDLING
+
+    def _data_collate_fn(
+        self,
+        for_tensor: bool,  # pylint: disable=unused-argument
+    ) -> Optional[Callable[[Any], Any]]:
+        """Overridable for custom collation function."""
+        return None
+
+    def _init_data_loader(
+        self,
+        data: Union[npt.NDArray[np.float32], torch.Tensor, Dataset[torch.Tensor]],
+        *,
+        for_training: bool,
+    ) -> DataLoader[torch.Tensor]:
+        # pylint: disable=assignment-from-none
+
+        if isinstance(data, np.ndarray):
+            data = torch.from_numpy(data)
+        batch_size = self.batch_size or len(data)  # type: ignore
+
+        if isinstance(data, torch.Tensor):
+            sampler_kwargs = self._trainer.distributed_sampler_kwargs
+            if sampler_kwargs is None:
+                sampler = TensorBatchSampler(data, batch_size)
+            elif for_training:
+                sampler = DistributedTensorBatchSampler(data, batch_size, **sampler_kwargs)
+            else:
+                sampler = UnrepeatedDistributedTensorBatchSampler(
+                    data, batch_size, **sampler_kwargs
+                )
+            # Although this is not actually a PyTorch data loader, we make the type checker think
+            # that it is one so that downstream users of this utility function do not have to
+            # handle this type explicitly.
+            collate_fn = self._data_collate_fn(for_tensor=True)
+            if collate_fn is not None:
+                return TensorDataLoader(  # type: ignore
+                    data,
+                    sampler=sampler,
+                    collate_fn=collate_fn,
+                )
+            return TensorDataLoader(data, sampler=sampler)  # type: ignore
+
+        collate_fn = self._data_collate_fn(for_tensor=False)
+        if collate_fn is not None:
+            return DataLoader(
+                data, num_workers=self.num_workers, batch_size=batch_size, collate_fn=collate_fn
+            )
+        return DataLoader(data, num_workers=self.num_workers, batch_size=batch_size)
+
+    # ---------------------------------------------------------------------------------------------
+    # HELPER METHODS
+
+    def _init_trainer(self, *, overwrite: bool = True) -> None:
+        if not hasattr(self, "trainer_") or overwrite:
+            self._trainer = pl.Trainer(**self._trainerparams)
+            assert not isinstance(
+                self._trainer.training_type_plugin,
+                (DDP2Plugin, DataParallelPlugin, DDPSpawnPlugin),
+            ), (
+                "Trainer is using an unsupported training type plugin. "
+                "`ddp2`, `dp` and `ddp_spawn` are currently not supported."
+            )
+
+    def _uses_batch_training(self, loader: DataLoader[torch.Tensor]) -> bool:
+        return (
+            len(loader) > 1
+            or self._trainer.num_gpus > 1
+            or self._trainer.num_nodes > 1
+            or self._trainer.num_processes > 1
+            or (self._trainer.tpu_cores is not None and self._trainer.tpu_cores > 1)
+            or (self._trainer.ipus is not None and self._trainer.ipus > 1)
+        )
+
+    # ---------------------------------------------------------------------------------------------
+    # SPECIAL METHODS
+
     def __getattr__(self, key: str) -> Any:
         if key in self.__dict__:
             return self.__dict__[key]
         if key.endswith("_") and not key.endswith("__"):
             raise NotFittedError(f"`{self.__class__.__name__}` has not been fitted yet")
-        raise AttributeError
+        raise AttributeError(
+            f"Attribute `{key}` does not exist on type `{self.__class__.__name__}`."
+        )
+
+    # ---------------------------------------------------------------------------------------------
+    # GENERICS
+
+    @classmethod
+    def _get_model_class(cls: Type[E]) -> Type[M]:
+        return cls._get_generic_type(0)
+
+    @classmethod
+    def _get_generic_type(cls: Type[E], index: int) -> Any:
+        for base in cls.__orig_bases__:  # type: ignore
+            if get_origin(base) == Estimator:
+                args = get_args(base)
+                if not args:
+                    raise ValueError(
+                        f"`{cls.__name__} does not provide at least {index+1} generic parameters"
+                        " for `Estimator`"
+                    )
+                return get_args(base)[index]
+        raise ValueError(f"`{cls.__name__}` does not inherit from `Estimator`")

@@ -4,7 +4,7 @@ classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-description = "Traditional GPU-Accelerated Machine Learning Models in PyTorch."
+description = "Traditional Machine Learning Models in PyTorch."
 documentation = "https://pycave.borchero.com"
 license = "MIT"
 name = "pycave"
@@ -15,7 +15,7 @@ version = "3.0.0"
 [tool.poetry.dependencies]
 numpy = "^1.20.3"
 python = "^3.8"
-pytorch-lightning = "^1.3.5"
+pytorch-lightning = {git = "https://github.com/borchero/pytorch-lightning.git", rev = "89ee1f28f7bdfb622b04600b366a6f8959b112a0"}
 torch = "^1.9.0"
 
 [tool.poetry.dev-dependencies]
@@ -26,6 +26,7 @@ jupyter = "^1.0.0"
 pydata-sphinx-theme = "^0.6.3"
 pylint = "^2.8.3"
 pytest = "^6.2.4"
+pytest-benchmark = "^3.4.1"
 scanpydoc = "^0.7.1"
 scikit-learn = "^0.24.2"
 sphinx-autodoc-typehints = "^1.12.0"
@@ -55,16 +56,15 @@ disable = [
 [tool.pylint.typecheck]
 generated-members = [
   "torch.*",
-  "pydantic.*",
 ]
 
 [tool.pyright]
-reportIncompatibleMethodOverride = false
-reportUnknownArgumentType = false
-reportUnknownMemberType = false
-reportUnknownVariableType = false
-stubPath = ""
-typeCheckingMode = "strict"
+reportIncompatibleMethodOverride = false 
+reportPrivateImportUsage = false # can be removed after Pylance v2021.10.1 has been released
+reportUnknownArgumentType = false 
+reportUnknownMemberType = false 
+reportUnknownVariableType = false 
+typeCheckingMode = "strict" 
 
 [tool.black]
 line-length = 99

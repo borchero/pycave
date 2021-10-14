@@ -4,8 +4,7 @@ from abc import ABC
 from pathlib import Path
 from typing import Generic, get_args, get_origin, Type, TypeVar
 import torch
-import torch.jit as jit
-import torch.nn as nn
+from torch import jit, nn
 
 C = TypeVar("C")
 M = TypeVar("M", bound="ConfigModule")  # type: ignore
@@ -27,8 +26,8 @@ class ConfigModule(nn.Module, Generic[C], ABC):
         parameters. This method is typically used after calling :meth:`save` on the model.
 
         Args:
-            path: The directory which contains the :code:`config.json` and :code:`parameters.pt`
-                files to load.
+            path: The directory which contains the ``config.json`` and ``parameters.pt`` files to
+                load.
 
         Returns:
             The loaded model.
@@ -65,7 +64,7 @@ class ConfigModule(nn.Module, Generic[C], ABC):
     def save(self, path: Path, compile_model: bool = False) -> None:
         """
         Saves the module's configuration and parameters to files in the specified directory. It
-        creates two files, namely :code:`config.json` and :code:`parameters.pt` which contain the
+        creates two files, namely ``config.json`` and ``parameters.pt`` which contain the
         configuration and parameters, respectively.
 
         Args:

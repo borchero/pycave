@@ -1,10 +1,10 @@
 from .estimator import MarkovChain
+from .lightning_module import MarkovChainLightningModule
 from .model import MarkovChainModel, MarkovChainModelConfig
-from .module import MarkovChainLightningModule
 
 __all__ = [
     "MarkovChain",
+    "MarkovChainLightningModule",
     "MarkovChainModel",
     "MarkovChainModelConfig",
-    "MarkovChainLightningModule",
 ]

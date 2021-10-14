@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import overload
 import torch
 import torch._jit_internal as _jit
-import torch.nn as nn
+from torch import jit, nn
 from torch.nn.utils.rnn import PackedSequence
 from pycave.core import ConfigModule
 
@@ -11,37 +11,42 @@ from pycave.core import ConfigModule
 @dataclass
 class MarkovChainModelConfig:
     """
-    This class configures the :class:`MarkovChainModel`.
+    Configuration class for a Markov chain model.
 
-    Attributes:
-        num_states: The number of states that the Markov chain manages.
+    See also:
+        :class:`MarkovChainModel`
     """
 
+    #: The number of states that are managed by the Markov chain.
     num_states: int
 
 
 class MarkovChainModel(ConfigModule[MarkovChainModelConfig]):
     """
-    The Markov chain model is the PyTorch module for the Markov chain. It manages two buffers: the
-    initial state probabilities and the transition probabilities. As the probabilities are not
-    learnt via gradient-based optimization methods, this module does not have trainable parameters.
+    PyTorch module for a Markov chain. It manages two buffers: the initial state probabilities and
+    the transition probabilities. As the probabilities are not learnt via gradient-based
+    optimization methods, this module does not have trainable parameters.
     """
 
     def __init__(self, config: MarkovChainModelConfig):
         """
         Args:
-            config: The configuration to use to initialize the module's buffers.
+            config: The configuration to use for initializing the module's buffers.
         """
         super().__init__(config)
 
+        #: The probabilities for the initial states, buffer of shape ``[num_states]``.
         self.initial_probs: torch.Tensor
         self.register_buffer("initial_probs", torch.empty(config.num_states))
 
+        #: The transition probabilities between all states, buffer of shape
+        #: ``[num_states, num_states]``.
         self.transition_probs: torch.Tensor
         self.register_buffer("transition_probs", torch.empty(config.num_states, config.num_states))
 
         self.reset_parameters()
 
+    @jit.unused
     def reset_parameters(self) -> None:
         """
         Resets the parameters of the Markov model. Initial and transition probabilities are sampled
@@ -65,15 +70,16 @@ class MarkovChainModel(ConfigModule[MarkovChainModelConfig]):
 
     def forward(self, sequences) -> torch.Tensor:
         """
-        Returns the log-probability of observing each of the provided sequences.
+        Computes the log-probability of observing each of the provided sequences.
 
         Args:
-            sequences: Tensor of shape `[num_sequences, sequence_length]` or a packed sequence.
+            sequences: Tensor of shape ``[num_sequences, sequence_length]`` or a packed sequence.
                 Packed sequences should be used whenever the sequence lengths differ. All
-                sequences must contain state indices of dtype `long`.
+                sequences must contain state indices of dtype ``long``.
 
         Returns:
-            A tensor of shape `[sequence_length]`, returning the log-probability of each sequence.
+            A tensor of shape ``[sequence_length]``, returning the log-probability of each
+                sequence.
         """
         if isinstance(sequences, torch.Tensor):
             log_probs = self.initial_probs[sequences[:, 0]].log()
@@ -108,7 +114,7 @@ class MarkovChainModel(ConfigModule[MarkovChainModelConfig]):
             sequence_length: The length of all sequences to sample.
 
         Returns:
-            Tensor of shape `[num_sequences, sequence_length]` with dtype `long`, providing the
+            Tensor of shape ``[num_sequences, sequence_length]`` with dtype ``long``, providing the
             sampled states.
         """
         samples = torch.empty(
@@ -133,9 +139,9 @@ class MarkovChainModel(ConfigModule[MarkovChainModelConfig]):
                 indicate convergence.
 
         Returns:
-            A tensor of shape `[num_states]` with the stationary distribution (i.e. the
-            eigenvector corresponding to the largest eigenvector of the transition matrix,
-            normalized to describe a probability distribution).
+            A tensor of shape ``[num_states]`` with the stationary distribution (i.e. the
+                eigenvector corresponding to the largest eigenvector of the transition matrix,
+                normalized to describe a probability distribution).
         """
         A = self.transition_probs.t()
         v = torch.rand(A.size(0), device=A.device)

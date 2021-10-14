@@ -4,6 +4,6 @@
     "lint": "pyright pycave"
   },
   "devDependencies": {
-    "pyright": "^1.1.149"
+    "pyright": "^1.1.177"
   }
 }

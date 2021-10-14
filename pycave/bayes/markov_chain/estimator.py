@@ -1,22 +1,30 @@
 from __future__ import annotations
-from typing import cast, List, Optional
+from typing import Any, Callable, cast, Dict, List, Optional
 import numpy as np
-import pytorch_lightning as pl
 import torch
-from torch.nn.utils.rnn import PackedSequence
-from torch.utils.data import DataLoader
 from pycave.core.estimator import Estimator
-from pycave.data.sequences import collate_sequences, sequence_dataset_from_data, SequenceData
+from pycave.data import collate_sequences, collate_sequences_same_length, SequenceData
+from .lightning_module import MarkovChainLightningModule
 from .model import MarkovChainModel, MarkovChainModelConfig
-from .module import MarkovChainLightningModule
 
 
 class MarkovChain(Estimator[MarkovChainModel]):
     """
+    Probabilistic model for observed state transitions.
+
     A Markov chain can be used to learn the initial probabilities of a set of states and the
     transition probabilities between them. It is similar to a hidden Markov model, only that the
     hidden states are known. More information is available
     `here <https://en.wikipedia.org/wiki/Markov_chain>`_.
+
+    See also:
+        .. currentmodule:: pycave.bayes.markov_chain
+        .. autosummary::
+            :nosignatures:
+            :template: classes/pytorch_module.rst
+
+            MarkovChainModel
+            MarkovChainModelConfig
     """
 
     def __init__(
@@ -25,7 +33,7 @@ class MarkovChain(Estimator[MarkovChainModel]):
         symmetric: bool = False,
         batch_size: Optional[int] = None,
         num_workers: int = 0,
-        trainer: Optional[pl.Trainer] = None,
+        trainer_params: Optional[Dict[str, Any]] = None,
     ):
         """
         Args:
@@ -39,19 +47,20 @@ class MarkovChain(Estimator[MarkovChainModel]):
                 data does not fit into memory.
             num_workers: The number of workers to use for loading the data. By default, it loads
                 data on the main process.
-            trainer: The PyTorch Lightning trainer to use for fitting the model. Consider setting
-                it explicitly if you e.g. have a GPU available but want to train on the CPU. Make
-                sure that you set :code:`max_epochs = 1` on the trainer since training for a Markov
-                chain requires only a single pass through the data.
+            trainer_params: Initialization parameters to use when initializing a PyTorch Lightning
+                trainer. This estimator sets an overridable default of `checkpoint_callback=False`
+                and enforces `max_epochs=1`.
         """
-        super().__init__()
+        super().__init__(
+            default_params=dict(checkpoint_callback=False),
+            user_params=trainer_params,
+            overwrite_params=dict(max_epochs=1),
+        )
 
         self.num_states = num_states
         self.symmetric = symmetric
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.trainer = trainer or pl.Trainer(max_epochs=1)
-        self.model_: MarkovChainModel
 
     def fit(self, sequences: SequenceData) -> MarkovChain:
         """
@@ -64,12 +73,14 @@ class MarkovChain(Estimator[MarkovChainModel]):
         Returns:
             The fitted Markov chain.
         """
+        self._init_trainer()
+
         config = MarkovChainModelConfig(num_states=self.num_states or _get_num_states(sequences))
-        self.model_ = MarkovChainModel(config)
+        self._model = MarkovChainModel(config)
 
         loader = self._get_data_loader(sequences)
         module = MarkovChainLightningModule(self.model_, self.symmetric)
-        self.trainer.fit(module, loader)
+        self._trainer.fit(module, loader)
         return self
 
     def sample(self, num_sequences: int, sequence_length: int) -> torch.Tensor:
@@ -81,7 +92,7 @@ class MarkovChain(Estimator[MarkovChainModel]):
             sequence_length: The length of the sequences to sample.
 
         Returns:
-            The sampled sequences as a tensor of shape `[num_sequences, sequence_length]`.
+            The sampled sequences as a tensor of shape ``[num_sequences, sequence_length]``.
         """
         return self.model_.sample(num_sequences, sequence_length)
 
@@ -97,12 +108,11 @@ class MarkovChain(Estimator[MarkovChainModel]):
             The average log-probability for all sequences.
 
         Note:
-            Other than :meth:`score_samples`, this method can also be run across multiple
-            processes.
+            Unlike :meth:`score_samples`, this method can also be run across multiple processes.
         """
         module = MarkovChainLightningModule(self.model_)
         loader = self._get_data_loader(sequences)
-        result = self.trainer.test(module, loader, verbose=False)
+        result = self._trainer.test(module, loader, verbose=False)
         return result[0]["log_prob"]
 
     def score_samples(self, sequences: SequenceData) -> torch.Tensor:
@@ -120,20 +130,13 @@ class MarkovChain(Estimator[MarkovChainModel]):
         """
         module = MarkovChainLightningModule(self.model_)
         loader = self._get_data_loader(sequences)
-        result = self.trainer.predict(module, loader, return_predictions=True)
+        result = self._trainer.predict(module, loader, return_predictions=True)
         return torch.stack(cast(List[torch.Tensor], result))
 
-    def _get_data_loader(self, sequences: SequenceData) -> DataLoader[PackedSequence]:
-        dataset = sequence_dataset_from_data(sequences)
-        assert self.batch_size is not None or hasattr(
-            dataset, "__len__"
-        ), "batch size must be set for iterable datasets"
-        return DataLoader(
-            dataset,
-            batch_size=self.batch_size or len(dataset),  # type: ignore
-            collate_fn=collate_sequences,  # type: ignore
-            num_workers=self.num_workers,
-        )
+    def _data_collate_fn(self, for_tensor: bool) -> Optional[Callable[[Any], Any]]:
+        if for_tensor:
+            return collate_sequences_same_length
+        return collate_sequences
 
 
 def _get_num_states(data: SequenceData) -> int:

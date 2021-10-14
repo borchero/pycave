@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  master:
+    image: borchero/pycave:latest
+    networks:
+      - global
+    command: python -W ignore tests/run.py
+    shm_size: 1G
+    volumes:
+      - type: bind
+        source: ../../../../pycave
+        target: /app/pycave
+      - type: bind
+        source: .
+        target: /app/tests
+    environment:
+      PYTHONPATH: /app
+      MASTER_PORT: 8000
+      WORLD_SIZE: 2
+      NODE_RANK: 0
+
+  follower:
+    image: borchero/pycave:latest
+    networks:
+      - global
+    command: python -W ignore tests/run.py
+    shm_size: 1G
+    volumes:
+      - type: bind
+        source: ../../../../pycave
+        target: /app/pycave
+      - type: bind
+        source: .
+        target: /app/tests
+    environment:
+      PYTHONPATH: /app
+      MASTER_ADDR: master
+      MASTER_PORT: 8000
+      WORLD_SIZE: 2
+      NODE_RANK: 1
+
+networks:
+  global: {}
