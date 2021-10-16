@@ -1,5 +1,6 @@
+from __future__ import annotations
 import logging
-from typing import List, Literal, Tuple
+from typing import List, Tuple
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning.callbacks import EarlyStopping
@@ -8,10 +9,9 @@ from pycave.bayes.core import cholesky_precision
 from pycave.core import NonparametricLightningModule
 from .metrics import CovarianceAggregator, MeanAggregator, PriorAggregator
 from .model import GaussianMixtureModel
+from .types import GaussianMixtureInitStrategy
 
 logger = logging.getLogger(__name__)
-
-InitStrategy = Literal["random", "kmeans"]
 
 
 # pylint: disable=abstract-method
@@ -26,7 +26,7 @@ class GaussianMixtureLightningModule(NonparametricLightningModule):
         tol: float = 1e-3,
         reg_covar: float = 1e-6,
         batch_training: bool = False,
-        init_strategy: InitStrategy = "kmeans",
+        init_strategy: GaussianMixtureInitStrategy = "kmeans",
     ):
         """
         Args:

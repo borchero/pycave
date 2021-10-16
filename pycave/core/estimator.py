@@ -39,6 +39,10 @@ class Estimator(Generic[M], ABC):
     Base estimator class from which all PyCave estimators should inherit.
     """
 
+    _trainer: pl.Trainer
+    # We have this as private and public property to properly generate documentation.
+    _model: M
+
     def __init__(
         self,
         *,
@@ -58,10 +62,6 @@ class Estimator(Generic[M], ABC):
             **(user_params or {}),
             **(overwrite_params or {}),
         }
-
-        self._trainer: pl.Trainer
-        # We have this as private and public property to properly generate documentation.
-        self._model: M
 
     @property
     def model_(self) -> M:

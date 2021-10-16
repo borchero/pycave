@@ -67,8 +67,7 @@ class MarkovChain(Estimator[MarkovChainModel]):
         Fits the Markov chain on the provided data and returns the fitted estimator.
 
         Args:
-            sequences: The sequences to fit the Markov chain on. May be a two-dimensional NumPy
-                array or PyTorch tensor, or a PyTorch dataset yielding individual sequences.
+            sequences: The sequences to fit the Markov chain on.
 
         Returns:
             The fitted Markov chain.
@@ -98,35 +97,29 @@ class MarkovChain(Estimator[MarkovChainModel]):
 
     def score(self, sequences: SequenceData) -> float:
         """
-        Computes the average log-probability of all the provided sequences. If you want to have
-        log-probabilities for each individual sequence, use :meth:`score_samples` instead.
+        Computes the average negative log-likelihood (NLL) of observing the provided sequences. If
+        you want to have NLLs for each individual sequence, use :meth:`score_samples` instead.
 
         Args:
             sequences: The sequences for which to compute the average log-probability.
 
         Returns:
-            The average log-probability for all sequences.
-
-        Note:
-            Unlike :meth:`score_samples`, this method can also be run across multiple processes.
+            The average NLL for all sequences.
         """
         module = MarkovChainLightningModule(self.model_)
         loader = self._get_data_loader(sequences)
         result = self._trainer.test(module, loader, verbose=False)
-        return result[0]["log_prob"]
+        return result[0]["nll"]
 
     def score_samples(self, sequences: SequenceData) -> torch.Tensor:
         """
-        Computes the log-probability of observing each of the sequences provided.
+        Computes the average negative log-likelihood (NLL) of observing the provided sequences.
 
         Args:
-            sequences: The sequences for which to compute the log-probabilities.
+            sequences: The sequences for which to compute the NLL.
 
         Returns:
-            The log-probability for each individual sequence.
-
-        Attention:
-            This method cannot be used in a multi-process setting.
+            A tensor of shape ``[num_sequences]`` with the NLLs for each individual sequence.
         """
         module = MarkovChainLightningModule(self.model_)
         loader = self._get_data_loader(sequences)

@@ -1,4 +1,4 @@
-from typing import List, Literal, Optional
+from typing import List, Optional
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning.callbacks import EarlyStopping
@@ -6,8 +6,7 @@ from torchmetrics import AverageMeter
 from pycave.core import NonparametricLightningModule
 from .metrics import CentroidAggregator, DistanceSampler, UniformSampler
 from .model import KMeansModel
-
-InitStrategy = Literal["random", "kmeans++"]
+from .types import KMeansInitStrategy
 
 
 # pylint: disable=abstract-method
@@ -19,7 +18,7 @@ class KMeansLightningModule(NonparametricLightningModule):
     def __init__(
         self,
         model: KMeansModel,
-        init_strategy: InitStrategy = "kmeans++",
+        init_strategy: KMeansInitStrategy = "kmeans++",
         tol: float = 1e-4,
         batch_training: bool = False,
     ):

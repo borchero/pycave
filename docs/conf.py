@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import os
 import sys
-from typing import Any
+from typing import Any, get_type_hints
 
 filepath = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(filepath, ".."))
@@ -11,9 +11,9 @@ sys.path.insert(0, os.path.join(filepath, ".."))
 # -------------------------------------------------------------------------------------------------
 # BASICS
 
-project = "PyBlaze"
-version = os.getenv("CIRCLE_TAG", "0.0.0")
-release = os.getenv("CIRCLE_TAG", "0.0.0")
+project = "PyCave"
+version = "3.0.0"
+release = "3.0.0"
 copyright = f"{datetime.datetime.now().year}, Oliver Borchert"
 
 # -------------------------------------------------------------------------------------------------
@@ -38,16 +38,21 @@ templates_path = ["_templates"]
 html_theme = "pydata_sphinx_theme"
 html_theme_options = {
     "show_prev_next": False,
+    "github_url": "https://github.com/borchero/pycave",
 }
+html_logo = "_static/logo.svg"
+html_favicon = "_static/favicon.ico"
 html_permalinks = True
 
 autosummary_generate = True
 autosummary_imported_members = True
 autodoc_member_order = "groupwise"
 autodoc_type_aliases = {
-    "CovarianceType": "pycave.bayes.core.types.CovarianceType",
-    "SequenceData": "pycave.data.SequenceData",
-    "TabularData": "pycave.data.TabularData",
+    "CovarianceType": ":class:`~pycave.bayes.core.CovarianceType`",
+    "SequenceData": ":class:`~pycave.data.SequenceData`",
+    "TabularData": ":class:`~pycave.data.TabularData`",
+    "GaussianMixtureInitStrategy": ":class:`~pycave.bayes.gmm.types.GaussianMixtureInitStrategy`",
+    "KMeansInitStrategy": ":class:`~pycave.clustering.kmeans.types.KMeansInitStrategy`",
 }
 autoclass_content = "both"
 
@@ -73,7 +78,7 @@ qualname_overrides = {
     "torch.nn.modules.module.Module": "torch.nn.Module",
 }
 
-fa_orig = sphinx_autodoc_typehints.format_annotation
+format_annotation_orig = sphinx_autodoc_typehints.format_annotation
 
 
 def format_annotation(annotation: Any, *args: Any, **kwargs: Any):
@@ -82,7 +87,45 @@ def format_annotation(annotation: Any, *args: Any, **kwargs: Any):
         override = qualname_overrides.get(full_name)
         if override is not None:
             return f":py:class:`~{override}`"
-    return fa_orig(annotation, *args, **kwargs)
+    return format_annotation_orig(annotation, *args, **kwargs)
+
+
+def get_all_type_hints(obj: Any, name: str):
+    rv = {}
+
+    try:
+        rv = get_type_hints(obj)
+        # HERE WE FIX THE ANNOTATIONS
+        rv = {
+            k: rv[k] if v not in autodoc_type_aliases else autodoc_type_aliases[v]
+            for k, v in obj.__annotations__.items()
+        }
+    except (AttributeError, TypeError, RecursionError):
+        # Introspecting a slot wrapper will raise TypeError, and and some recursive type
+        # definitions will cause a RecursionError (https://github.com/python/typing/issues/574).
+        pass
+    except NameError:
+        rv = obj.__annotations__
+
+    if rv:
+        return rv
+
+    rv = sphinx_autodoc_typehints.backfill_type_hints(obj, name)
+
+    try:
+        obj.__annotations__ = rv
+    except (AttributeError, TypeError):
+        return rv
+
+    try:
+        rv = get_type_hints(obj)
+    except (AttributeError, TypeError):
+        pass
+    except NameError:
+        rv = obj.__annotations__
+
+    return rv
 
 
 sphinx_autodoc_typehints.format_annotation = format_annotation
+sphinx_autodoc_typehints.get_all_type_hints = get_all_type_hints

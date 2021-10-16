@@ -6,8 +6,9 @@ from pycave.bayes.core import CovarianceType
 from pycave.clustering import KMeans
 from pycave.core.estimator import Estimator
 from pycave.data import TabularData
-from .lightning_module import GaussianMixtureLightningModule, InitStrategy
+from .lightning_module import GaussianMixtureLightningModule
 from .model import GaussianMixtureModel, GaussianMixtureModelConfig
+from .types import GaussianMixtureInitStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel]):
         self,
         num_components: int = 1,
         covariance_type: CovarianceType = "diag",
-        init_strategy: InitStrategy = "kmeans",
+        init_strategy: GaussianMixtureInitStrategy = "kmeans",
         convergence_tolerance: float = 1e-3,
         reg_covar: float = 1e-6,
         batch_size: Optional[int] = None,
@@ -46,6 +47,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel]):
             num_components: The number of components in the GMM. The dimensionality of each
                 component is automatically inferred from the data.
             covariance_type: The type of covariance to assume for all Gaussian components.
+            init_strategy: The strategy for initializing component means and covariances.
             batch_size: The batch size to use when fitting the model. If not provided, the full
                 data will be used as a single batch. Set this if the full data does not fit into
                 memory.
@@ -79,7 +81,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel]):
 
         self.num_components = num_components
         self.covariance_type = covariance_type
-        self.init_strategy: InitStrategy = init_strategy
+        self.init_strategy: GaussianMixtureInitStrategy = init_strategy
         self.convergence_tolerance = convergence_tolerance
         self.reg_covar = reg_covar
 
@@ -225,9 +227,9 @@ class GaussianMixture(Estimator[GaussianMixtureModel]):
 
         Returns:
             A tensor of shape ``[num_datapoints, num_components]`` with the assignment
-                probabilities for each component and datapoint. Note that each row of the vector
-                sums to 1, i.e. the returned tensor provides a proper distribution over the
-                components for each datapoint.
+            probabilities for each component and datapoint. Note that each row of the vector sums
+            to 1, i.e. the returned tensor provides a proper distribution over the components for
+            each datapoint.
         """
         result = self._trainer.predict(
             GaussianMixtureLightningModule(self.model_),

@@ -8,7 +8,7 @@ from pycave.core import ConfigModule
 @dataclass
 class KMeansModelConfig:
     """
-    Configuration class for a K-means model.
+    Configuration class for a K-Means model.
 
     See also:
         :class:`KMeansModel`

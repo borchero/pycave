@@ -3,8 +3,9 @@ from typing import Any, cast, Dict, List, Optional
 import torch
 from pycave.core import Estimator
 from pycave.data import TabularData
-from .ligthning_module import InitStrategy, KMeansLightningModule
+from .ligthning_module import KMeansLightningModule
 from .model import KMeansModel, KMeansModelConfig
+from .types import KMeansInitStrategy
 
 
 class KMeans(Estimator[KMeansModel]):
@@ -21,11 +22,18 @@ class KMeans(Estimator[KMeansModel]):
             KMeansModelConfig
     """
 
+    #: A boolean indicating whether the model converged during training.
+    converged_: bool
+    #: The number of iterations the model was fitted for, excluding initialization.
+    num_iter_: int
+    #: The mean squared distance of all datapoints to their closest cluster centers.
+    inertia_: float
+
     def __init__(
         self,
         num_clusters: int = 1,
         *,
-        init_strategy: InitStrategy = "kmeans++",
+        init_strategy: KMeansInitStrategy = "kmeans++",
         convergence_tolerance: float = 1e-3,
         batch_size: Optional[int] = None,
         num_workers: int = 0,
@@ -34,7 +42,7 @@ class KMeans(Estimator[KMeansModel]):
         """
         Args:
             num_clusters: The number of clusters.
-            init_strategy: The initialization strategy. Either ``kmeans++`` or ``random``.
+            init_strategy: The strategy for initializing centroids.
             convergence_tolerance: Training is conducted until the decrease in change of per-
                 datapoint inertia falls below this value.
             batch_size: The batch size to use when fitting the model. If not provided, the full
@@ -72,15 +80,8 @@ class KMeans(Estimator[KMeansModel]):
 
         # Assign other properties
         self.num_clusters = num_clusters
-        self.init_strategy: InitStrategy = init_strategy
+        self.init_strategy = init_strategy
         self.convergence_tolerance = convergence_tolerance
-
-        #: A boolean indicating whether the model converged during training.
-        self.converged_: bool
-        #: The number of iterations the model was fitted for, excluding initialization.
-        self.num_iter_: int
-        #: The mean squared distance of all datapoints to their closest cluster centers.
-        self.inertia_: float
 
     def fit(self, data: TabularData) -> KMeans:
         """
@@ -107,7 +108,7 @@ class KMeans(Estimator[KMeansModel]):
         loader = self._init_data_loader(data, for_training=True)
         module = KMeansLightningModule(
             self.model_,
-            init_strategy=self.init_strategy,
+            init_strategy=self.init_strategy,  # type: ignore
             tol=self.convergence_tolerance,
             batch_training=self._uses_batch_training(loader),
         )
@@ -132,14 +133,14 @@ class KMeans(Estimator[KMeansModel]):
 
         Returns:
             Tensor of shape ``[num_datapoints]`` with the index of the closest cluster for each
-                datapoint.
+            datapoint.
 
         Note:
             When calling this function in a multi-process environment, each process receives only
-                a subset of the predictions. If you want to aggregate predictions, make sure to
-                gather the values returned from this method. Take care that this only works when
-                the number of predictions in each process is equal, i.e. if the provided data is
-                divisible by the number of processes.
+            a subset of the predictions. If you want to aggregate predictions, make sure to gather
+            the values returned from this method. Take care that this only works when the number
+            of predictions in each process is equal, i.e. if the provided data is divisible by the
+            number of processes.
         """
         result = self._trainer.predict(
             KMeansLightningModule(self.model_),
