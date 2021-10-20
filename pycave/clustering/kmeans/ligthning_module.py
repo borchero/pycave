@@ -51,6 +51,8 @@ class KMeansLightningModule(NonparametricLightningModule):
         self.metric_inertia = AverageMeter()
 
     def configure_callbacks(self) -> List[pl.Callback]:
+        if self.convergence_tolerance == 0:
+            return []
         early_stopping = EarlyStopping(
             "frobenius_norm_change",
             patience=100000,

@@ -122,18 +122,22 @@ class KMeans(Estimator[KMeansModel], TransformerMixin[TabularData, torch.Tensor]
 
         # Then, in order to find the right convergence tolerance, we need to compute the variance
         # of the data.
-        self._init_trainer(overwrite=True, updated_params=dict(max_epochs=2))
-        variances = torch.empty(config.num_features)
-        module = FeatureVarianceLightningModule(variances)
-        self.trainer_.fit(module, self._init_data_loader(data, for_training=True))
+        if self.convergence_tolerance != 0:
+            self._init_trainer(overwrite=True, updated_params=dict(max_epochs=2))
+            variances = torch.empty(config.num_features)
+            module = FeatureVarianceLightningModule(variances)
+            self.trainer_.fit(module, self._init_data_loader(data, for_training=True))
 
-        tolerance_multiplier = cast(float, variances.mean().item())
+            tolerance_multiplier = cast(float, variances.mean().item())
+            convergence_tolerance = self.convergence_tolerance * tolerance_multiplier
+        else:
+            convergence_tolerance = 0
 
         # Then, we can fit the actual model. We need a new trainer for that
         self._init_trainer(overwrite=True)
         module = KMeansLightningModule(
             self.model_,
-            convergence_tolerance=self.convergence_tolerance * tolerance_multiplier,
+            convergence_tolerance=convergence_tolerance,
         )
         self.trainer_.fit(module, self._init_data_loader(data, for_training=True))
 
