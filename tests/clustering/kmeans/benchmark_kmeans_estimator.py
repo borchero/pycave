@@ -53,7 +53,7 @@ def test_pycave(
     benchmark(estimator.fit, data)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available())
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is not available")
 @pytest.mark.parametrize(
     ("num_datapoints", "batch_size", "num_features", "num_centroids"),
     [
