@@ -30,6 +30,7 @@ class MarkovChain(Estimator[MarkovChainModel]):
     def __init__(
         self,
         num_states: Optional[int] = None,
+        *,
         symmetric: bool = False,
         batch_size: Optional[int] = None,
         num_workers: int = 0,
@@ -79,7 +80,7 @@ class MarkovChain(Estimator[MarkovChainModel]):
 
         loader = self._get_data_loader(sequences)
         module = MarkovChainLightningModule(self.model_, self.symmetric)
-        self._trainer.fit(module, loader)
+        self.trainer_.fit(module, loader)
         return self
 
     def sample(self, num_sequences: int, sequence_length: int) -> torch.Tensor:
@@ -108,7 +109,7 @@ class MarkovChain(Estimator[MarkovChainModel]):
         """
         module = MarkovChainLightningModule(self.model_)
         loader = self._get_data_loader(sequences)
-        result = self._trainer.test(module, loader, verbose=False)
+        result = self.trainer_.test(module, loader, verbose=False)
         return result[0]["nll"]
 
     def score_samples(self, sequences: SequenceData) -> torch.Tensor:
@@ -123,7 +124,7 @@ class MarkovChain(Estimator[MarkovChainModel]):
         """
         module = MarkovChainLightningModule(self.model_)
         loader = self._get_data_loader(sequences)
-        result = self._trainer.predict(module, loader, return_predictions=True)
+        result = self.trainer_.predict(module, loader, return_predictions=True)
         return torch.stack(cast(List[torch.Tensor], result))
 
     def _data_collate_fn(self, for_tensor: bool) -> Optional[Callable[[Any], Any]]:

@@ -46,7 +46,7 @@ class KMeansModel(ConfigModule[KMeansModelConfig]):
         """
         nn.init.normal_(self.centroids)
 
-    def forward(self, data: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, data: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Computes the distance of each datapoint to each centroid as well as the "inertia", the
         squared distance of each datapoint to its closest centroid.
@@ -58,9 +58,12 @@ class KMeansModel(ConfigModule[KMeansModelConfig]):
         Returns:
             - A tensor of shape ``[num_datapoints, num_centroids]`` with the distance from each
               datapoint to each centroid.
+            - A tensor of shape ``[num_datapoints]`` with the assignments, i.e. the indices of
+              each datapoint's closest centroid.
             - A tensor of shape ``[num_datapoints]`` with the inertia (squared distance to the
               closest centroid) of each datapoint.
         """
         distances = torch.cdist(data, self.centroids)
-        inertias = distances.gather(1, distances.argmin(1, keepdim=True)).square()
-        return distances, inertias.squeeze(1)
+        assignments = distances.min(1, keepdim=True).indices
+        inertias = distances.gather(1, assignments).square()
+        return distances, assignments.squeeze(1), inertias.squeeze(1)

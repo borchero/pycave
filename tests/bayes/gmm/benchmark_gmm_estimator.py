@@ -1,40 +1,10 @@
+# pylint: disable=missing-function-docstring
 import pytest
 import torch
 from pytest_benchmark.fixture import BenchmarkFixture  # type: ignore
 from sklearn.mixture import GaussianMixture as SklearnGaussianMixture  # type: ignore
 from pycave.bayes import GaussianMixture
-from pycave.bayes.gmm_ import GaussianMixtureModel, GaussianMixtureModelConfig
-
-
-def _generate_sample_data(num_datapoints: int, num_features: int) -> torch.Tensor:
-    num_components = 4
-
-    # Initialize model
-    mixture = GaussianMixtureModel(
-        GaussianMixtureModelConfig(
-            num_components=num_components, num_features=num_features, covariance_type="spherical"
-        )
-    )
-
-    # Set custom parameters
-    mixture.component_probs.copy_(torch.ones(num_components) / num_components)
-    mixture.means.copy_(
-        torch.stack(
-            [
-                torch.zeros(num_features) - 2,
-                torch.zeros(num_features) - 1,
-                torch.zeros(num_features) + 1,
-                torch.zeros(num_features) + 2,
-            ]
-        )
-    )
-    mixture.precisions_cholesky.copy_(torch.zeros(num_components) + 3)
-
-    # Return samples
-    return mixture.sample(num_datapoints)
-
-
-# -------------------------------------------------------------------------------------------------
+from pycave.bayes.gmm import GaussianMixtureModel, GaussianMixtureModelConfig
 
 
 @pytest.mark.parametrize(

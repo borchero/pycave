@@ -1,64 +1,45 @@
 # pylint: disable=missing-function-docstring
-from typing import List
 import pytest
 import torch
 from sklearn.mixture._gaussian_mixture import _compute_log_det_cholesky  # type: ignore
 from sklearn.mixture._gaussian_mixture import _compute_precision_cholesky  # type: ignore
+from tests._data.normal import (
+    sample_data,
+    sample_diag_covars,
+    sample_full_covars,
+    sample_means,
+    sample_spherical_covars,
+)
 from torch.distributions import MultivariateNormal
 from pycave.bayes.core import cholesky_precision, log_normal, sample_normal
 from pycave.bayes.core._jit import _cholesky_logdet  # type: ignore
-
-
-def _generate_data(counts: List[int], dims: List[int]) -> List[torch.Tensor]:
-    return [torch.randn(count, dim) for count, dim in zip(counts, dims)]
-
-
-def _generate_means(counts: List[int], dims: List[int]) -> List[torch.Tensor]:
-    return [torch.randn(count, dim) for count, dim in zip(counts, dims)]
-
-
-def _generate_spherical_covars(counts: List[int]) -> List[torch.Tensor]:
-    return [torch.rand(count) for count in counts]
-
-
-def _generate_diag_covars(counts: List[int], dims: List[int]) -> List[torch.Tensor]:
-    return [torch.rand(count, dim).squeeze() for count, dim in zip(counts, dims)]
-
-
-def _generate_full_covars(counts: List[int], dims: List[int]) -> List[torch.Tensor]:
-    result = []
-    for count, dim in zip(counts, dims):
-        A = torch.randn(count, dim * 10, dim)
-        result.append(A.permute(0, 2, 1).bmm(A).squeeze())
-    return result
-
 
 # -------------------------------------------------------------------------------------------------
 # CHOLESKY PRECISIONS
 
 
-@pytest.mark.parametrize("covars", _generate_spherical_covars([70, 5, 200]))
+@pytest.mark.parametrize("covars", sample_spherical_covars([70, 5, 200]))
 def test_cholesky_precision_spherical(covars: torch.Tensor):
     expected = _compute_precision_cholesky(covars.numpy(), "spherical")  # type: ignore
     actual = cholesky_precision(covars, "spherical")
     assert torch.allclose(torch.as_tensor(expected, dtype=torch.float), actual)
 
 
-@pytest.mark.parametrize("covars", _generate_diag_covars([70, 5, 200], [3, 50, 100]))
+@pytest.mark.parametrize("covars", sample_diag_covars([70, 5, 200], [3, 50, 100]))
 def test_cholesky_precision_diag(covars: torch.Tensor):
     expected = _compute_precision_cholesky(covars.numpy(), "diag")  # type: ignore
     actual = cholesky_precision(covars, "diag")
     assert torch.allclose(torch.as_tensor(expected, dtype=torch.float), actual)
 
 
-@pytest.mark.parametrize("covars", _generate_full_covars([70, 5, 200], [3, 50, 100]))
+@pytest.mark.parametrize("covars", sample_full_covars([70, 5, 200], [3, 50, 100]))
 def test_cholesky_precision_full(covars: torch.Tensor):
     expected = _compute_precision_cholesky(covars.numpy(), "full")  # type: ignore
     actual = cholesky_precision(covars, "full")
     assert torch.allclose(torch.as_tensor(expected, dtype=torch.float), actual)
 
 
-@pytest.mark.parametrize("covars", _generate_full_covars([1, 1, 1], [3, 50, 100]))
+@pytest.mark.parametrize("covars", sample_full_covars([1, 1, 1], [3, 50, 100]))
 def test_cholesky_precision_tied(covars: torch.Tensor):
     expected = _compute_precision_cholesky(covars.numpy(), "tied")  # type: ignore
     actual = cholesky_precision(covars, "tied")
@@ -69,7 +50,7 @@ def test_cholesky_precision_tied(covars: torch.Tensor):
 # CHOLESKY LOG DETERMINANTS
 
 
-@pytest.mark.parametrize("covars", _generate_spherical_covars([70, 5, 200]))
+@pytest.mark.parametrize("covars", sample_spherical_covars([70, 5, 200]))
 def test_cholesky_logdet_spherical(covars: torch.Tensor):
     expected = _compute_log_det_cholesky(  # type: ignore
         _compute_precision_cholesky(covars.numpy(), "spherical"), "spherical", 100  # type: ignore
@@ -82,7 +63,7 @@ def test_cholesky_logdet_spherical(covars: torch.Tensor):
     assert torch.allclose(torch.as_tensor(expected, dtype=torch.float), actual)
 
 
-@pytest.mark.parametrize("covars", _generate_diag_covars([70, 5, 200], [3, 50, 100]))
+@pytest.mark.parametrize("covars", sample_diag_covars([70, 5, 200], [3, 50, 100]))
 def test_cholesky_logdet_diag(covars: torch.Tensor):
     expected = _compute_log_det_cholesky(  # type: ignore
         _compute_precision_cholesky(covars.numpy(), "diag"),  # type: ignore
@@ -97,7 +78,7 @@ def test_cholesky_logdet_diag(covars: torch.Tensor):
     assert torch.allclose(torch.as_tensor(expected, dtype=torch.float), actual)
 
 
-@pytest.mark.parametrize("covars", _generate_full_covars([70, 5, 200], [3, 50, 100]))
+@pytest.mark.parametrize("covars", sample_full_covars([70, 5, 200], [3, 50, 100]))
 def test_cholesky_logdet_full(covars: torch.Tensor):
     expected = _compute_log_det_cholesky(  # type: ignore
         _compute_precision_cholesky(covars.numpy(), "full"),  # type: ignore
@@ -112,7 +93,7 @@ def test_cholesky_logdet_full(covars: torch.Tensor):
     assert torch.allclose(torch.as_tensor(expected, dtype=torch.float), actual)
 
 
-@pytest.mark.parametrize("covars", _generate_full_covars([1, 1, 1], [3, 50, 100]))
+@pytest.mark.parametrize("covars", sample_full_covars([1, 1, 1], [3, 50, 100]))
 def test_cholesky_logdet_tied(covars: torch.Tensor):
     expected = _compute_log_det_cholesky(  # type: ignore
         _compute_precision_cholesky(covars.numpy(), "tied"),  # type: ignore
@@ -134,9 +115,9 @@ def test_cholesky_logdet_tied(covars: torch.Tensor):
 @pytest.mark.parametrize(
     "x, means, covars",
     zip(
-        _generate_data([10, 50, 100], [3, 50, 100]),
-        _generate_means([70, 5, 200], [3, 50, 100]),
-        _generate_spherical_covars([70, 5, 200]),
+        sample_data([10, 50, 100], [3, 50, 100]),
+        sample_means([70, 5, 200], [3, 50, 100]),
+        sample_spherical_covars([70, 5, 200]),
     ),
 )
 def test_log_normal_spherical(x: torch.Tensor, means: torch.Tensor, covars: torch.Tensor):
@@ -149,9 +130,9 @@ def test_log_normal_spherical(x: torch.Tensor, means: torch.Tensor, covars: torc
 @pytest.mark.parametrize(
     "x, means, covars",
     zip(
-        _generate_data([10, 50, 100], [3, 50, 100]),
-        _generate_means([70, 5, 200], [3, 50, 100]),
-        _generate_diag_covars([70, 5, 200], [3, 50, 100]),
+        sample_data([10, 50, 100], [3, 50, 100]),
+        sample_means([70, 5, 200], [3, 50, 100]),
+        sample_diag_covars([70, 5, 200], [3, 50, 100]),
     ),
 )
 def test_log_normal_diag(x: torch.Tensor, means: torch.Tensor, covars: torch.Tensor):
@@ -164,9 +145,9 @@ def test_log_normal_diag(x: torch.Tensor, means: torch.Tensor, covars: torch.Ten
 @pytest.mark.parametrize(
     "x, means, covars",
     zip(
-        _generate_data([10, 50, 100], [3, 50, 100]),
-        _generate_means([70, 5, 200], [3, 50, 100]),
-        _generate_full_covars([70, 5, 200], [3, 50, 100]),
+        sample_data([10, 50, 100], [3, 50, 100]),
+        sample_means([70, 5, 200], [3, 50, 100]),
+        sample_full_covars([70, 5, 200], [3, 50, 100]),
     ),
 )
 def test_log_normal_full(x: torch.Tensor, means: torch.Tensor, covars: torch.Tensor):
@@ -178,9 +159,9 @@ def test_log_normal_full(x: torch.Tensor, means: torch.Tensor, covars: torch.Ten
 @pytest.mark.parametrize(
     "x, means, covars",
     zip(
-        _generate_data([10, 50, 100], [3, 50, 100]),
-        _generate_means([70, 5, 200], [3, 50, 100]),
-        _generate_full_covars([1, 1, 1], [3, 50, 100]),
+        sample_data([10, 50, 100], [3, 50, 100]),
+        sample_means([70, 5, 200], [3, 50, 100]),
+        sample_full_covars([1, 1, 1], [3, 50, 100]),
     ),
 )
 def test_log_normal_tied(x: torch.Tensor, means: torch.Tensor, covars: torch.Tensor):

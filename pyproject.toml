@@ -15,8 +15,9 @@ version = "3.0.0"
 [tool.poetry.dependencies]
 numpy = "^1.20.3"
 python = "^3.8"
-pytorch-lightning = {git = "https://github.com/borchero/pytorch-lightning.git", rev = "89ee1f28f7bdfb622b04600b366a6f8959b112a0"}
+pytorch-lightning = {git = "https://github.com/PyTorchLightning/pytorch-lightning.git", rev = "7b4df7bf919acfd7f7b39d780faeadb54aec9ade"}
 torch = "^1.9.0"
+torchmetrics = "^0.5.1"
 
 [tool.poetry.dev-dependencies]
 Sphinx = "^4.0.2"

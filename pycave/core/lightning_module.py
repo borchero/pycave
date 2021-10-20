@@ -35,8 +35,17 @@ class NonparametricLightningModule(pl.LightningModule, ABC):
         Training step that is not allowed to return any value.
         """
 
-    @abstractmethod
     def nonparametric_training_epoch_end(self) -> None:
         """
-        Training epoch end that is not passed any outputs.
+        Training epoch end that is not passed any outputs. Does nothing by default.
         """
+
+    def all_gather_first(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Gathers the provided tensor from all processes. If more than one process is available,
+        chooses the value of the first process in every process.
+        """
+        gathered = self.all_gather(x)
+        if gathered.dim() > x.dim():
+            return gathered[0]
+        return x

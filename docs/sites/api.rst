@@ -73,6 +73,10 @@ Base Classes
 
     Estimator
 
+    :template: classes/mixin.rst
+
+    TransformerMixin
+
     :template: classes/only_methods.rst
 
     ConfigModule

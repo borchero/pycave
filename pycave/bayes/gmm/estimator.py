@@ -4,7 +4,7 @@ from typing import Any, cast, Dict, List, Optional, Tuple
 import torch
 from pycave.bayes.core import CovarianceType
 from pycave.clustering import KMeans
-from pycave.core.estimator import Estimator
+from pycave.core import Estimator, PredictorMixin
 from pycave.data import TabularData
 from .lightning_module import GaussianMixtureLightningModule
 from .model import GaussianMixtureModel, GaussianMixtureModelConfig
@@ -13,13 +13,12 @@ from .types import GaussianMixtureInitStrategy
 logger = logging.getLogger(__name__)
 
 
-class GaussianMixture(Estimator[GaussianMixtureModel]):
+class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularData, torch.Tensor]):
     """
-    Probabilistic model assuming that data is generated from a mixture of Gaussians.
-
-    A Gaussian mixture can be used to learn the latent Gaussian distributions (i.e. components)
-    from which data is sampled. More information is available
-    `on Wikipedia <https://en.wikipedia.org/wiki/Mixture_model>`_.
+    Probabilistic model assuming that data is generated from a mixture of Gaussians. The mixture is
+    assumed to be composed of a fixed number of components with individual means and covariances.
+    More information on Gaussian mixture models (GMMs) is available on
+    `Wikipedia <https://en.wikipedia.org/wiki/Mixture_model>`_.
 
     See also:
         .. currentmodule:: pycave.bayes.gmm
@@ -31,13 +30,21 @@ class GaussianMixture(Estimator[GaussianMixtureModel]):
             GaussianMixtureModelConfig
     """
 
+    #: A boolean indicating whether the model converged during training.
+    converged_: bool
+    #: The number of iterations the model was fitted for, excluding initialization.
+    num_iter_: int
+    #: The average per-datapoint negative log-likelihood at the last training step.
+    nll_: float
+
     def __init__(
         self,
         num_components: int = 1,
+        *,
         covariance_type: CovarianceType = "diag",
         init_strategy: GaussianMixtureInitStrategy = "kmeans",
         convergence_tolerance: float = 1e-3,
-        reg_covar: float = 1e-6,
+        covariance_regularization: float = 1e-6,
         batch_size: Optional[int] = None,
         num_workers: int = 0,
         trainer_params: Optional[Dict[str, Any]] = None,
@@ -48,49 +55,48 @@ class GaussianMixture(Estimator[GaussianMixtureModel]):
                 component is automatically inferred from the data.
             covariance_type: The type of covariance to assume for all Gaussian components.
             init_strategy: The strategy for initializing component means and covariances.
+            convergence_tolerance: The change in the per-datapoint negative log-likelihood which
+                implies that training has converged.
+            covariance_regularization: A small value which is added to the diagonal of the
+                covariance matrix to ensure that it is positive semi-definite.
             batch_size: The batch size to use when fitting the model. If not provided, the full
                 data will be used as a single batch. Set this if the full data does not fit into
                 memory.
             num_workers: The number of workers to use for loading the data.
             trainer_params: Initialization parameters to use when initializing a PyTorch Lightning
-                trainer. This estimator sets the following overridable defaults:
+                trainer. By default, it disables various stdout logs unless PyCave is configured to
+                do verbose logging. Checkpointing and logging are disabled regardless of the log
+                level. This estimator further sets the following overridable defaults:
 
                 - ``max_epochs=100``
-                - ``checkpoint_callback=False``
-                - ``log_every_n_steps=1``
-                - ``weights_summary=None``
 
         Note:
-            The GMM is trained via the EM algorithm. When training via mini-batches, epochs
-            alternately compute the updated means (as well as component priors) and covariances,
-            respectively. If training is stopped after an odd number of epochs, only the GMM's
-            means and component prior will have been updated while the covariances are outdated.
-            Thus, training for and odd number of epochs is discouraged.
+            The number of epochs passed to the initializer only define the number of optimization
+            epochs. Prior to that, a single initialization epoch is run.
+
+        Note:
+            For batch training, the number of epochs run (i.e. the number of passes through the
+            data), does not align with the number of epochs passed to the optimizer. This is
+            because the EM-algorithm needs to be split up across two epochs. The actual number of
+            minimum/maximum epochs is, thus, doubled.
         """
         super().__init__(
             batch_size=batch_size,
             num_workers=num_workers,
             default_params=dict(
                 max_epochs=100,
-                checkpoint_callback=False,
-                log_every_n_steps=1,
-                weights_summary=None,
             ),
             user_params=trainer_params,
         )
 
         self.num_components = num_components
         self.covariance_type = covariance_type
-        self.init_strategy: GaussianMixtureInitStrategy = init_strategy
+        self.init_strategy = init_strategy
         self.convergence_tolerance = convergence_tolerance
-        self.reg_covar = reg_covar
+        self.covariance_regularization = covariance_regularization
 
         self.batch_size = batch_size
         self.num_workers = num_workers
-
-        self.converged_: bool
-        self.num_iter_: int
-        self.nll_: float
 
     def fit(self, data: TabularData) -> GaussianMixture:
         """
@@ -104,9 +110,19 @@ class GaussianMixture(Estimator[GaussianMixtureModel]):
         Returns:
             The fitted Gaussian mixture.
         """
-        self._init_trainer()
+        # Init the trainer
+        batch_training = self._uses_batch_training(data)  # type: ignore
+        self._init_trainer(
+            updated_params=dict(
+                max_epochs=(
+                    self.trainer_params["max_epochs"] * (int(batch_training) + 1)
+                    + int(self.init_strategy != "kmeans")
+                    + 1
+                )
+            )
+        )
 
-        # Initialize model
+        # Initialize the model
         num_features = len(data[0])
         config = GaussianMixtureModelConfig(
             num_components=self.num_components,
@@ -122,23 +138,19 @@ class GaussianMixture(Estimator[GaussianMixtureModel]):
                 self.num_components,
                 batch_size=self.batch_size,
                 num_workers=self.num_workers,
-                trainer_params=self._trainerparams_user,
+                trainer_params=self.trainer_params_user,
             ).fit(data)
             self.model_.means.copy_(estimator.model_.centroids)
-
-        # Set up data loader
-        loader = self._init_data_loader(data, for_training=True)
-        batch_training = self._uses_batch_training(loader)
 
         # Fit model
         module = GaussianMixtureLightningModule(
             self.model_,
-            tol=self.convergence_tolerance,
-            reg_covar=self.reg_covar,
-            init_strategy=self.init_strategy,
+            init_strategy=self.init_strategy,  # type: ignore
+            convergence_tolerance=self.convergence_tolerance,
+            covariance_regularization=self.covariance_regularization,
             batch_training=batch_training,
         )
-        self._trainer.fit(module, loader)
+        self.trainer_.fit(module, self._init_data_loader(data, for_training=True))
 
         # Assign convergence properties
         self.num_iter_ = module.current_epoch + 1
@@ -147,11 +159,13 @@ class GaussianMixture(Estimator[GaussianMixtureModel]):
             # initialization, this should be an even number, for kmeans initialization, it should
             # be an odd number.
             self.num_iter_ //= 2
-        # For random initialization, one optimization cycle is used
-        self.num_iter_ -= 1
+        # For initialization, one optimization cycle is used. However, for batch training, this is
+        # already absorbed for the kmeans initialization due to the integer division.
+        if not (batch_training and self.init_strategy == "kmeans"):
+            self.num_iter_ -= 1
 
-        self.converged_ = module.current_epoch + 1 < cast(int, self._trainer.max_epochs)
-        self.nll_ = cast(float, self._trainer.callback_metrics["nll"].item())
+        self.converged_ = self.trainer_.should_stop
+        self.nll_ = cast(float, self.trainer_.callback_metrics["nll"].item())
         return self
 
     def sample(self, num_datapoints: int) -> torch.Tensor:
@@ -163,6 +177,10 @@ class GaussianMixture(Estimator[GaussianMixtureModel]):
 
         Returns:
             A tensor of shape ``[num_datapoints, dim]`` providing the samples.
+
+        Note:
+            This method does not parallelize across multiple processes, i.e. performs no
+            synchronization.
         """
         return self.model_.sample(num_datapoints)
 
@@ -179,7 +197,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel]):
         Note:
             See :meth:`score_samples` to obtain NLL values for individual datapoints.
         """
-        result = self._trainer.test(
+        result = self.trainer_.test(
             GaussianMixtureLightningModule(self.model_),
             self._init_data_loader(data, for_training=False),
             verbose=False,
@@ -195,8 +213,13 @@ class GaussianMixture(Estimator[GaussianMixtureModel]):
 
         Returns:
             A tensor of shape ``[num_datapoints]`` with the NLL for each datapoint.
+
+        Attention:
+            When calling this function in a multi-process environment, each process receives only
+            a subset of the predictions. If you want to aggregate predictions, make sure to gather
+            the values returned from this method.
         """
-        result = self._trainer.predict(
+        result = self.trainer_.predict(
             GaussianMixtureLightningModule(self.model_),
             self._init_data_loader(data, for_training=False),
         )
@@ -215,6 +238,11 @@ class GaussianMixture(Estimator[GaussianMixtureModel]):
         Note:
             Use :meth:`predict_proba` to obtain probabilities for each component instead of the
             most likely component only.
+
+        Attention:
+            When calling this function in a multi-process environment, each process receives only
+            a subset of the predictions. If you want to aggregate predictions, make sure to gather
+            the values returned from this method.
         """
         return self.predict_proba(data).argmax(-1)
 
@@ -230,8 +258,13 @@ class GaussianMixture(Estimator[GaussianMixtureModel]):
             probabilities for each component and datapoint. Note that each row of the vector sums
             to 1, i.e. the returned tensor provides a proper distribution over the components for
             each datapoint.
+
+        Attention:
+            When calling this function in a multi-process environment, each process receives only
+            a subset of the predictions. If you want to aggregate predictions, make sure to gather
+            the values returned from this method.
         """
-        result = self._trainer.predict(
+        result = self.trainer_.predict(
             GaussianMixtureLightningModule(self.model_),
             self._init_data_loader(data, for_training=False),
         )

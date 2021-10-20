@@ -36,6 +36,7 @@ templates_path = ["_templates"]
 # CONFIGURATION
 
 html_theme = "pydata_sphinx_theme"
+pygments_style = "lovelace"
 html_theme_options = {
     "show_prev_next": False,
     "github_url": "https://github.com/borchero/pycave",

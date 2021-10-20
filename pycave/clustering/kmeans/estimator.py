@@ -1,14 +1,19 @@
 from __future__ import annotations
 from typing import Any, cast, Dict, List, Optional
 import torch
-from pycave.core import Estimator
+from pycave.core import Estimator, TransformerMixin
 from pycave.data import TabularData
-from .ligthning_module import KMeansLightningModule
+from .ligthning_module import (
+    FeatureVarianceLightningModule,
+    KMeansLightningModule,
+    KmeansPlusPlusInitLightningModule,
+    KmeansRandomInitLightningModule,
+)
 from .model import KMeansModel, KMeansModelConfig
 from .types import KMeansInitStrategy
 
 
-class KMeans(Estimator[KMeansModel]):
+class KMeans(Estimator[KMeansModel], TransformerMixin[TabularData, torch.Tensor]):
     """
     Model for clustering data into a predefined number of clusters.
 
@@ -34,7 +39,7 @@ class KMeans(Estimator[KMeansModel]):
         num_clusters: int = 1,
         *,
         init_strategy: KMeansInitStrategy = "kmeans++",
-        convergence_tolerance: float = 1e-3,
+        convergence_tolerance: float = 1e-4,
         batch_size: Optional[int] = None,
         num_workers: int = 0,
         trainer_params: Optional[Dict[str, Any]] = None,
@@ -43,8 +48,9 @@ class KMeans(Estimator[KMeansModel]):
         Args:
             num_clusters: The number of clusters.
             init_strategy: The strategy for initializing centroids.
-            convergence_tolerance: Training is conducted until the decrease in change of per-
-                datapoint inertia falls below this value.
+            convergence_tolerance: Training is conducted until the Frobenius norm of the change
+                between cluster centroids falls below this threshold. The tolerance is multiplied
+                by the average variance of the features.
             batch_size: The batch size to use when fitting the model. If not provided, the full
                 data will be used as a single batch. Set this if the full data does not fit into
                 memory.
@@ -62,20 +68,18 @@ class KMeans(Estimator[KMeansModel]):
             num_workers=num_workers,
             default_params=dict(
                 max_epochs=300,
-                checkpoint_callback=False,
-                log_every_n_steps=1,
             ),
             user_params=trainer_params,
         )
 
         # We need to account for the initialization epochs in `max_epochs`
-        self._trainerparams = {
+        self.trainer_params = {
             k: (
                 v + (1 if init_strategy == "random" else num_clusters)
                 if k in ("min_epochs", "max_epochs")
                 else v
             )
-            for k, v in self._trainerparams.items()
+            for k, v in self.trainer_params.items()
         }
 
         # Assign other properties
@@ -94,8 +98,6 @@ class KMeans(Estimator[KMeansModel]):
         Returns:
             The fitted KMeans model.
         """
-        self._init_trainer()
-
         # Initialize model
         num_features = len(data[0])
         config = KMeansModelConfig(
@@ -104,24 +106,41 @@ class KMeans(Estimator[KMeansModel]):
         )
         self._model = KMeansModel(config)
 
-        # Fit model
-        loader = self._init_data_loader(data, for_training=True)
+        # First, initialize the centroids
+        if self.init_strategy == "random":
+            module = KmeansRandomInitLightningModule(self.model_)
+            num_epochs = 1
+        else:
+            module = KmeansPlusPlusInitLightningModule(
+                self.model_,
+                is_batch_training=self._uses_batch_training(data),  # type: ignore
+            )
+            num_epochs = 2 * config.num_clusters - 1
+
+        self._init_trainer(overwrite=True, updated_params=dict(max_epochs=num_epochs))
+        self.trainer_.fit(module, self._init_data_loader(data, for_training=True))
+
+        # Then, in order to find the right convergence tolerance, we need to compute the variance
+        # of the data.
+        self._init_trainer(overwrite=True, updated_params=dict(max_epochs=2))
+        variances = torch.empty(config.num_features)
+        module = FeatureVarianceLightningModule(variances)
+        self.trainer_.fit(module, self._init_data_loader(data, for_training=True))
+
+        tolerance_multiplier = cast(float, variances.mean().item())
+
+        # Then, we can fit the actual model. We need a new trainer for that
+        self._init_trainer(overwrite=True)
         module = KMeansLightningModule(
             self.model_,
-            init_strategy=self.init_strategy,  # type: ignore
-            tol=self.convergence_tolerance,
-            batch_training=self._uses_batch_training(loader),
+            convergence_tolerance=self.convergence_tolerance * tolerance_multiplier,
         )
-        self._trainer.fit(module, loader)
+        self.trainer_.fit(module, self._init_data_loader(data, for_training=True))
 
         # Assign convergence properties
-        self.num_iter_ = (
-            module.current_epoch
-            + 1
-            - (self.num_clusters if self.init_strategy == "kmeans++" else 1)
-        )
-        self.converged_ = module.current_epoch + 1 < cast(int, self._trainer.max_epochs)
-        self.inertia_ = cast(float, self._trainer.callback_metrics["inertia"].item())
+        self.num_iter_ = module.current_epoch + 1
+        self.converged_ = module.current_epoch + 1 < cast(int, self.trainer_.max_epochs)
+        self.inertia_ = cast(float, self.trainer_.callback_metrics["inertia"].item())
         return self
 
     def predict(self, data: TabularData) -> torch.Tensor:
@@ -142,8 +161,8 @@ class KMeans(Estimator[KMeansModel]):
             of predictions in each process is equal, i.e. if the provided data is divisible by the
             number of processes.
         """
-        result = self._trainer.predict(
-            KMeansLightningModule(self.model_),
+        result = self.trainer_.predict(
+            KMeansLightningModule(self.model_, predict_target="assignments"),
             self._init_data_loader(data, for_training=False),
         )
         return torch.cat(cast(List[torch.Tensor], result))
@@ -159,8 +178,27 @@ class KMeans(Estimator[KMeansModel]):
         Returns:
             The average inertia.
         """
-        result = self._trainer.test(
+        result = self.trainer_.test(
             KMeansLightningModule(self.model_),
             self._init_data_loader(data, for_training=False),
+            verbose=False,
         )
         return result[0]["inertia"]
+
+    def transform(self, data: TabularData) -> torch.Tensor:
+        """
+        Transforms the provided data into the cluster-distance space. That is, it returns the
+        distance of each datapoint to each cluster centroid.
+
+        Args:
+            data: The data to transform.
+
+        Returns:
+            A tensor of shape ``[num_datapoints, num_clusters]`` with the distances to the cluster
+            centroids.
+        """
+        result = self.trainer_.predict(
+            KMeansLightningModule(self.model_, predict_target="distances"),
+            self._init_data_loader(data, for_training=False),
+        )
+        return torch.cat(cast(List[torch.Tensor], result))

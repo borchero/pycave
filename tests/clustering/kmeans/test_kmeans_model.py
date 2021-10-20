@@ -1,3 +1,4 @@
+# pylint: disable=missing-function-docstring
 import torch
 from torch import jit
 from pycave.clustering.kmeans import KMeansModel, KMeansModelConfig
@@ -15,10 +16,12 @@ def test_forward():
     model.centroids.copy_(torch.as_tensor([[0.0, 0.0], [2.0, 2.0]]))
 
     X = torch.as_tensor([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0], [-1.0, 4.0]])
-    distances, inertias = model.forward(X)
+    distances, assignments, inertias = model.forward(X)
 
     expected_distances = torch.as_tensor([[0.0, 8.0], [2.0, 2.0], [8.0, 0.0], [17.0, 13.0]]).sqrt()
+    expected_assignments = torch.as_tensor([0, 0, 1, 1])
     expected_inertias = torch.as_tensor([0.0, 2.0, 0.0, 13.0])
 
     assert torch.allclose(distances, expected_distances)
+    assert torch.all(assignments == expected_assignments)
     assert torch.allclose(inertias, expected_inertias)

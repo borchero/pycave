@@ -27,13 +27,21 @@ class GaussianMixtureModelConfig:
 
 class GaussianMixtureModel(ConfigModule[GaussianMixtureModelConfig]):
     """
-    PyTorch module for a Gaussian mixture model.
+    PyTorch module for a Gaussian mixture model. The
     The Gaussian Mixture model is the PyTorch module for the GMM. It manages three kinds of
     parameters: the component probabilities, their means, and covariances. For computational
     efficiency, the latter are represented as an inverted matrix obtained via Cholesky
     decomposition. As parameters are typically optimized via the EM algorithm instead of
     gradient-based methods, the GMM does not have trainable parameters.
     """
+
+    #: The probabilities of each component, buffer of shape ``[num_components]``.
+    component_probs: torch.Tensor
+    #: The means of each component, buffer of shape ``[num_components, num_features]``.
+    means: torch.Tensor
+    #: The precision matrices for the components' covariances, buffer with a shape dependent
+    #: on the covariance type, see :class:`CovarianceType`.
+    precisions_cholesky: torch.Tensor
 
     def __init__(self, config: GaussianMixtureModelConfig):
         """
@@ -44,17 +52,9 @@ class GaussianMixtureModel(ConfigModule[GaussianMixtureModelConfig]):
 
         self.covariance_type = config.covariance_type
 
-        #: The probabilities of each component, buffer of shape ``[num_components]``.
-        self.component_probs: torch.Tensor
         self.register_buffer("component_probs", torch.empty(config.num_components))
-
-        #: The means of each component, buffer of shape ``[num_components, num_features]``.
-        self.means: torch.Tensor
         self.register_buffer("means", torch.empty(config.num_components, config.num_features))
 
-        #: The precision matrices for the components' covariances, buffer with a shape dependent
-        #: on the covariance type, see :data:`CovarianceType`.
-        self.precisions_cholesky: torch.Tensor
         shape = covariance_shape(
             config.num_components, config.num_features, config.covariance_type
         )
@@ -65,10 +65,12 @@ class GaussianMixtureModel(ConfigModule[GaussianMixtureModelConfig]):
     @jit.unused
     def reset_parameters(self) -> None:
         """
-        Resets the parameters of the GMM. Component probabilities are initialized via uniform
-        sampling and normalization. Means are initialized randomly from a Standard Normal.
-        Cholesky precisions are initialized randomly based on the covariance type. For all
-        covariance types, it is based on uniform sampling.
+        Resets the parameters of the GMM.
+
+        - Component probabilities are initialized via uniform sampling and normalization.
+        - Means are initialized randomly from a Standard Normal.
+        - Cholesky precisions are initialized randomly based on the covariance type. For all
+          covariance types, it is based on uniform sampling.
         """
         nn.init.uniform_(self.component_probs)
         self.component_probs.div_(self.component_probs.sum())
@@ -95,11 +97,10 @@ class GaussianMixtureModel(ConfigModule[GaussianMixtureModelConfig]):
                 log-probabilities.
 
         Returns:
-            A tuple of two tensors. The first tensor is of shape
-            ``[num_datapoints, num_components]`` and provides the log-responsibilities. This can be
-            considered as a Categorical distribution over the components whose parameters are given
-            as logits. The second tensor is of shape ``[num_datapoints]`` and provides the
-            log-probabilities of each datapoint.
+            - A tensor of shape ``[num_datapoints, num_components]`` with the log-responsibilities
+              for each datapoint and components. These are the logits of the Categorical
+              distribution over the parameters.
+            - A tensor of shape ``[num_datapoints]`` with the log-likelihood of each datapoint.
         """
         log_probabilities = jit_log_normal(
             data, self.means, self.precisions_cholesky, self.covariance_type

@@ -18,6 +18,9 @@ warnings.filterwarnings(
 warnings.filterwarnings(
     action="ignore", message=".*`LightningModule.configure_optimizers` returned `None`.*"
 )
+warnings.filterwarnings(
+    action="ignore", message=".*`LoggerConnector.gpus_metrics` was deprecated in v1.5.*"
+)
 
 # We also want to define a function which silences info logs
 def set_logging_enabled(enabled: bool) -> None:

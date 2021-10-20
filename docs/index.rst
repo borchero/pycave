@@ -11,6 +11,7 @@ Features
 --------
 
 - Support for GPU, TPU, and multi-node training by implementing models in PyTorch and relying on `PyTorch Ligthning <https://www.pytorchlightning.ai/>`_
+- Mini-batch training for all models such that they can be used on huge datasets
 - Highly structured implementation of models
 
   - High-level ``Estimator`` API allows for easy usage such that models feel and behave like in
@@ -67,7 +68,8 @@ model, to find the clusters' centroids, it's as easy as:
     print(estimator.model_.centroids)
 
 Due to the high-level estimator API, the usage for all machine learning models is similar. The API
-documentation provides detailed information 
+documentation provides more detailed information about parameters that can be passed to estimators
+and which methods are available.
 
 
 Implemented Models

@@ -1,6 +1,6 @@
+# pylint: disable=missing-function-docstring
 import math
 from typing import Tuple
-import pytorch_lightning as pl
 import torch
 from pycave.bayes import MarkovChain
 
@@ -10,15 +10,6 @@ def test_fit_automatic_config():
     data = torch.randint(50, size=(100, 20))
     chain.fit(data)
     assert chain.model_.config.num_states == 50
-
-
-def test_multiprocessing():
-    chain = MarkovChain(
-        num_workers=2,
-        trainer=pl.Trainer(accelerator="ddp_cpu", max_epochs=1, num_processes=4),
-    )
-    data = torch.randint(50, size=(10000, 20))
-    chain.fit(data)
 
 
 def test_sample_and_fit():

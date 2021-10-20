@@ -1,3 +1,4 @@
+# pylint: disable=missing-function-docstring
 from torch import jit
 from pycave.bayes.gmm import GaussianMixtureModel, GaussianMixtureModelConfig
 

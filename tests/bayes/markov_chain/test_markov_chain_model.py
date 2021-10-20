@@ -1,6 +1,7 @@
+# pylint: disable=missing-function-docstring
 import math
 import torch
-import torch.jit as jit
+from torch import jit
 from torch.nn.utils.rnn import pack_padded_sequence
 from pycave.bayes.markov_chain import MarkovChainModel, MarkovChainModelConfig
 

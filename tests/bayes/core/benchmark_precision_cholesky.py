@@ -1,3 +1,4 @@
+# pylint: disable=missing-function-docstring
 import numpy as np
 import torch
 from pytest_benchmark.fixture import BenchmarkFixture  # type: ignore

@@ -26,8 +26,10 @@ kmeans
 learnt
 logits
 markov
+Mixin
 nn
 overridable
+parallelize
 params
 precisions
 pycave

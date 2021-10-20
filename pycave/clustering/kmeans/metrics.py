@@ -1,3 +1,4 @@
+import random
 from typing import Any, Callable, Optional
 import torch
 from torchmetrics import Metric
@@ -64,12 +65,23 @@ class UniformSampler(Metric):
         self.add_state("choice_weights", torch.zeros(num_choices), dist_reduce_fx="cat")
 
     def update(self, data: torch.Tensor) -> None:
-        # The choices are computed from scratch every time, weighting the current choices by the
-        # cumulative weight put on them
-        weights = torch.cat([torch.ones(data.size(0), device=data.device), self.choice_weights])
-        pool = torch.cat([data, self.choices])
-        samples = weights.multinomial(self.num_choices)
-        self.choices.copy_(pool[samples])
+        if self.num_choices == 1:
+            # If there is only one choice, the fastest thing is to use the `random` package. The
+            # cumulative weight of the data is its size, the cumulative weight of the current
+            # choice is some value.
+            cum_weight = data.size(0) + self.choice_weights.item()
+            if random.random() * cum_weight < data.size(0):
+                # Use some item from the data, else keep the current choice
+                self.choices.copy_(data[random.randrange(data.size(0))])
+        else:
+            # The choices are computed from scratch every time, weighting the current choices by
+            # the cumulative weight put on them
+            weights = torch.cat(
+                [torch.ones(data.size(0), device=data.device), self.choice_weights]
+            )
+            pool = torch.cat([data, self.choices])
+            samples = weights.multinomial(self.num_choices)
+            self.choices.copy_(pool[samples])
 
         # The weights are the cumulative counts, divided by the number of choices
         self.choice_weights.add_(data.size(0) / self.num_choices)
@@ -86,39 +98,108 @@ class DistanceSampler(Metric):
     """
     The distance sampler may be used for kmeans++ initialization, to iteratively select centroids
     according to their squared distances to existing choices. Computing the distance to existing
-    choices is not part of this sampler. Within each "cycle", it computes a single choice.
+    choices is not part of this sampler. Within each "cycle", it computes a given number of
+    candidates. Candidates are sampled independently and may be duplicates.
     """
 
     def __init__(
         self,
+        num_choices: int,
         num_features: int,
         *,
         dist_sync_fn: Optional[Callable[[Any], Any]] = None,
     ):
         super().__init__(dist_sync_fn=dist_sync_fn)  # type: ignore
 
-        self.choice: torch.Tensor
-        self.add_state("choice", torch.empty(1, num_features), dist_reduce_fx="cat")
+        self.num_choices = num_choices
+        self.num_features = num_features
 
+        self.choices: torch.Tensor
+        self.add_state("choices", torch.empty(num_choices, num_features), dist_reduce_fx="cat")
+
+        # Cumulative distance is the same for all choices
         self.cumulative_squared_distance: torch.Tensor
         self.add_state("cumulative_squared_distance", torch.zeros(1), dist_reduce_fx="cat")
 
-    def update(self, data: torch.Tensor, distances: torch.Tensor) -> None:
-        shortest_distances = distances.gather(1, distances.argmin(1, keepdim=True)).squeeze(1)
+    def update(self, data: torch.Tensor, shortest_distances: torch.Tensor) -> None:
+        eps = torch.finfo(data.dtype).eps
         squared_distances = shortest_distances.square()
-        weights = torch.cat([self.cumulative_squared_distance, squared_distances])
-        choice = weights.multinomial(1)
-        if choice.item() != 0:
-            # If the choice is not 0, one of the new datapoints is chosen
-            self.choice.copy_(data[choice - 1])
+
+        # For all choices, check if we should use a sample from the data or the existing choice
+        data_dist = squared_distances.sum()
+        cum_dist = data_dist + eps + self.cumulative_squared_distance
+        use_choice_from_data = (
+            torch.rand(self.num_choices, device=data.device, dtype=data.dtype) * cum_dist
+            < data_dist + eps
+        )
+
+        # Then, we sample from the data `num_choices` times and replace if needed
+        choices = (squared_distances + eps).multinomial(self.num_choices, replacement=True)
+        self.choices.masked_scatter_(
+            use_choice_from_data.unsqueeze(1), data[choices[use_choice_from_data]]
+        )
 
         # In any case, the cumulative distances are updated
-        self.cumulative_squared_distance.add_(squared_distances.sum())
+        self.cumulative_squared_distance.add_(data_dist)
 
     def compute(self) -> torch.Tensor:
         # Upon computation, we sample if there is more than one choice (ddp setting)
-        if self.choice.size(0) > 1:
-            choice = self.cumulative_squared_distance.multinomial(1)
-            return self.choice[choice][0]
-        # Otherwise, we can return the choice
-        return self.choice[0]
+        if self.choices.size(0) > self.num_choices:
+            # choices now have shape [num_choices, num_processes, num_features]
+            choices = self.choices.reshape(-1, self.num_choices, self.num_features).transpose(0, 1)
+            # For each choice, we sample across processes
+            choice_indices = torch.arange(self.num_choices, device=self.choices.device)
+            process_indices = self.cumulative_squared_distance.multinomial(
+                self.num_choices, replacement=True
+            )
+            return choices[choice_indices, process_indices]
+        # Otherwise, we can return the choices
+        return self.choices
+
+
+class BatchSummer(Metric):
+    """
+    Sums the values for a batch of items independently.
+    """
+
+    def __init__(self, num_values: int, *, dist_sync_fn: Optional[Callable[[Any], Any]] = None):
+        super().__init__(dist_sync_fn=dist_sync_fn)  # type: ignore
+
+        self.sums: torch.Tensor
+        self.add_state("sums", torch.zeros(num_values), dist_reduce_fx="sum")
+
+    def update(self, values: torch.Tensor) -> None:
+        self.sums.add_(values.sum(0))
+
+    def compute(self) -> torch.Tensor:
+        return self.sums
+
+
+class BatchAverager(Metric):
+    """
+    Averages the values for a batch of items independently.
+    """
+
+    def __init__(
+        self,
+        num_values: int,
+        for_variance: bool,
+        *,
+        dist_sync_fn: Optional[Callable[[Any], Any]] = None,
+    ):
+        super().__init__(dist_sync_fn=dist_sync_fn)  # type: ignore
+
+        self.for_variance = for_variance
+
+        self.sums: torch.Tensor
+        self.add_state("sums", torch.zeros(num_values), dist_reduce_fx="sum")
+
+        self.counts: torch.Tensor
+        self.add_state("counts", torch.zeros(num_values), dist_reduce_fx="sum")
+
+    def update(self, values: torch.Tensor) -> None:
+        self.sums.add_(values.sum(0))
+        self.counts.add_(values.size(0))
+
+    def compute(self) -> torch.Tensor:
+        return self.sums / (self.counts - 1 if self.for_variance else self.counts)
