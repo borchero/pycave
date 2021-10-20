@@ -16,9 +16,11 @@ from pycave.clustering.kmeans.types import KMeansInitStrategy
         (10000, 8, 4, 100, "k-means++"),
         (100000, 32, 16, 100, "k-means++"),
         (1000000, 64, 64, 100, "k-means++"),
+        (10000000, 128, 128, 100, "k-means++"),
         (10000, 8, 4, 100, "random"),
         (100000, 32, 16, 100, "random"),
         (1000000, 64, 64, 100, "random"),
+        (10000000, 128, 128, 100, "random"),
     ],
 )
 def test_sklearn(
@@ -92,15 +94,14 @@ def test_pycave(
         (1000000, None, 64, 64, 100, "kmeans++"),
         (1000000, 100000, 64, 64, 100, "kmeans++"),
         (10000000, 1000000, 128, 128, 100, "kmeans++"),
-        # (100000000, 5000000, 512, 1024, 100, "kmeans++"),
+        (100000000, 2500000, 512, 1024, 100, "kmeans++"),
         (10000, None, 8, 4, 100, "random"),
         (10000, 1000, 8, 4, 100, "random"),
         (100000, None, 32, 16, 100, "random"),
         (100000, 10000, 32, 16, 100, "random"),
         (1000000, None, 64, 64, 100, "random"),
         (1000000, 100000, 64, 64, 100, "random"),
-        (10000000, 1000000, 128, 128, 100, "random"),
-        # (100000000, 5000000, 512, 1024, 100, "random"),
+        (100000000, 2500000, 512, 1024, 100, "random"),
     ],
 )
 def test_pycave_gpu(
@@ -121,6 +122,7 @@ def test_pycave_gpu(
         num_centroids,
         init_strategy=init_strategy,
         batch_size=batch_size,
+        convergence_tolerance=0,
         trainer_params=dict(gpus=1, max_epochs=num_iter),
     )
     benchmark(estimator.fit, data)
