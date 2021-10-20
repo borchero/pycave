@@ -8,14 +8,20 @@ sizes.
 As PyCave and scikit-learn might not need the same number of iterations for convergence, we disable the convergence criterion and set a fixed number of iterations depending on the dataset
 size.
 
-All benchmarks are run on an instance with a Intel Xeon E5-2630 v4 CPU (2.2 GHz) and 20 cores. Also, there is a single GeForce GTX 1080 Ti GPU (11 GiB memory) available. For the performance
-measures, each benchmark is run at least 5 times.
+All benchmarks are run on an instance with a Intel Xeon E5-2630 v4 CPU (2.2 GHz). We use at most 4
+cores and 60 GiB of memory. Also, there is a single GeForce GTX 1080 Ti GPU (11 GiB memory)
+available. For the performance measures, each benchmark is run at least 5 times.
 
 Gaussian Mixture
 ^^^^^^^^^^^^^^^^
 
 K-Means
 ^^^^^^^
+
+For K-Means, it is really hard to outperform scikit-learn. Especially if little data is available,
+the overhead of PyTorch and PyTorch Lightning renders PyCave comparatively slow. However, as more
+data is available, PyCave starts to become relatively faster and, when leveraging the GPU, it
+finally outperforms scikit-learn for a dataset size of 1M datapoints.
 
 .. list-table:: K-Means Relative Performance
     :header-rows: 1

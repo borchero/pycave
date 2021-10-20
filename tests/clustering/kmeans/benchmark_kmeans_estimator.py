@@ -27,7 +27,7 @@ def test_sklearn(
     pl.seed_everything(0)
     data = sample_gmm(num_datapoints, num_features, num_centroids, "spherical")
 
-    estimator = SklearnKMeans(num_centroids, n_init=1, max_iter=num_iter, tol=0)
+    estimator = SklearnKMeans(num_centroids, algorithm="full", n_init=1, max_iter=num_iter, tol=0)
     benchmark(estimator.fit, data.numpy())
 
 
