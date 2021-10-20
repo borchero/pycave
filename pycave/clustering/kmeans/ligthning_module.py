@@ -229,7 +229,7 @@ class KmeansPlusPlusInitLightningModule(NonparametricLightningModule):
             # In the first epoch, we can skip any argmin as the shortest distances are computed
             # with respect to the first centroid.
             shortest_distances = torch.cdist(batch, self.model.centroids[:1]).squeeze(1)
-            if self.is_batch_training:
+            if not self.is_batch_training:
                 self.shortest_distance_cache = shortest_distances
         elif self.is_batch_training:
             # For batch training, we always need to recompute all distances since we can't
