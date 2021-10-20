@@ -72,16 +72,6 @@ class KMeans(Estimator[KMeansModel], TransformerMixin[TabularData, torch.Tensor]
             user_params=trainer_params,
         )
 
-        # We need to account for the initialization epochs in `max_epochs`
-        self.trainer_params = {
-            k: (
-                v + (1 if init_strategy == "random" else num_clusters)
-                if k in ("min_epochs", "max_epochs")
-                else v
-            )
-            for k, v in self.trainer_params.items()
-        }
-
         # Assign other properties
         self.num_clusters = num_clusters
         self.init_strategy = init_strategy

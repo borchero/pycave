@@ -13,15 +13,19 @@ cores and 60 GiB of memory. Also, there is a single GeForce GTX 1080 Ti GPU (11 
 available. For the performance measures, each benchmark is run at least 5 times.
 
 Gaussian Mixture
-^^^^^^^^^^^^^^^^
+----------------
 
 K-Means
-^^^^^^^
+-------
 
-For K-Means, it is really hard to outperform scikit-learn. Especially if little data is available,
-the overhead of PyTorch and PyTorch Lightning renders PyCave comparatively slow. However, as more
-data is available, PyCave starts to become relatively faster and, when leveraging the GPU, it
-finally outperforms scikit-learn for a dataset size of 1M datapoints.
+Setup
+^^^^^
+
+For the scikit-learn implementation, we use Lloyd's algorithm instead of Elkan's algorithm to have
+a useful comparison with PyCave (which implements Lloyd's algorithm).
+
+Results
+^^^^^^^
 
 .. list-table:: K-Means Relative Performance
     :header-rows: 1
@@ -63,3 +67,8 @@ finally outperforms scikit-learn for a dataset size of 1M datapoints.
       - --
       - --
       - 
+
+As it turns out, it is really hard to outperform scikit-learn. Especially if little data is
+available, the overhead of PyTorch and PyTorch Lightning renders PyCave comparatively slow.
+However, as more data is available, PyCave starts to become relatively faster and, when leveraging
+the GPU, it finally outperforms scikit-learn for a dataset size of 1M datapoints.
