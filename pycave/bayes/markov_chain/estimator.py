@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 from typing import Any, Callable, cast, Dict, List, Optional
 import numpy as np
 import torch
@@ -6,6 +7,8 @@ from pycave.core.estimator import Estimator
 from pycave.data import collate_sequences, collate_sequences_same_length, SequenceData
 from .lightning_module import MarkovChainLightningModule
 from .model import MarkovChainModel, MarkovChainModelConfig
+
+logger = logging.getLogger(__name__)
 
 
 class MarkovChain(Estimator[MarkovChainModel]):
@@ -77,6 +80,7 @@ class MarkovChain(Estimator[MarkovChainModel]):
         )
         self._model = MarkovChainModel(config)
 
+        logger.info("Fitting Markov chain...")
         self._trainer().fit(
             MarkovChainLightningModule(self.model_, self.symmetric),
             self._init_data_loader(sequences, for_training=True),

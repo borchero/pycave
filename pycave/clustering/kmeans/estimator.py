@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 from typing import Any, cast, Dict, List, Optional
 import torch
 from pycave.core import Estimator, PredictorMixin, TransformerMixin
@@ -11,6 +12,8 @@ from .lightning_module import (
 )
 from .model import KMeansModel, KMeansModelConfig
 from .types import KMeansInitStrategy
+
+logger = logging.getLogger(__name__)
 
 
 class KMeans(
@@ -121,6 +124,7 @@ class KMeans(
             )
             num_epochs = 2 * config.num_clusters - 1
 
+        logger.info("Running initialization...")
         self._trainer(max_epochs=num_epochs).fit(module, loader)
 
         # Then, in order to find the right convergence tolerance, we need to compute the variance
@@ -136,6 +140,7 @@ class KMeans(
             convergence_tolerance = 0
 
         # Then, we can fit the actual model. We need a new trainer for that
+        logger.info("Fitting K-Means...")
         trainer = self._trainer()
         module = KMeansLightningModule(
             self.model_,
