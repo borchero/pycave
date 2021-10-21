@@ -47,6 +47,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
         *,
         covariance_type: CovarianceType = "diag",
         init_strategy: GaussianMixtureInitStrategy = "kmeans",
+        init_means: Optional[torch.Tensor] = None,
         convergence_tolerance: float = 1e-3,
         covariance_regularization: float = 1e-6,
         batch_size: Optional[int] = None,
@@ -59,6 +60,10 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
                 component is automatically inferred from the data.
             covariance_type: The type of covariance to assume for all Gaussian components.
             init_strategy: The strategy for initializing component means and covariances.
+            init_means: An optional initial guess for the means of the components. If provided,
+                must be a tensor of shape ``[num_components, num_features]``. If this is given,
+                the ``init_strategy`` is ignored and the means are handled as if K-means
+                initialization has been run.
             convergence_tolerance: The change in the per-datapoint negative log-likelihood which
                 implies that training has converged.
             covariance_regularization: A small value which is added to the diagonal of the
@@ -99,6 +104,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
         self.num_components = num_components
         self.covariance_type = covariance_type
         self.init_strategy = init_strategy
+        self.init_means = init_means
         self.convergence_tolerance = convergence_tolerance
         self.covariance_regularization = covariance_regularization
 
@@ -130,8 +136,10 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
         is_batch_training = self._uses_batch_training(data)  # type: ignore
         loader = self._init_data_loader(data, for_training=True)
 
-        # Run k-means if required
-        if self.init_strategy in ("kmeans", "kmeans++"):
+        # Run k-means if required or copy means
+        if self.init_means is not None:
+            self.model_.means.copy_(self.init_means)
+        elif self.init_strategy in ("kmeans", "kmeans++"):
             logger.info("Fitting K-means estimator...")
             params = self.trainer_params_user
             if self.init_strategy == "kmeans++":
@@ -147,7 +155,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
 
         # Run initialization
         logger.info("Running initialization...")
-        if self.init_strategy in ("kmeans", "kmeans++"):
+        if self.init_strategy in ("kmeans", "kmeans++") or self.init_means is not None:
             module = GaussianMixtureKmeansInitLightningModule(
                 self.model_,
                 covariance_regularization=self.covariance_regularization,

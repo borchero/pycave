@@ -13,15 +13,12 @@ from pycave.bayes.core.types import CovarianceType
 @pytest.mark.parametrize(
     ("num_datapoints", "num_features", "num_components", "covariance_type"),
     [
-        (10000, 8, 4, "spherical"),
         (10000, 8, 4, "diag"),
         (10000, 8, 4, "tied"),
         (10000, 8, 4, "full"),
-        (100000, 32, 16, "spherical"),
         (100000, 32, 16, "diag"),
         (100000, 32, 16, "tied"),
         (100000, 32, 16, "full"),
-        (1000000, 64, 64, "spherical"),
         (1000000, 64, 64, "diag"),
     ],
 )
@@ -33,7 +30,7 @@ def test_sklearn(
     covariance_type: CovarianceType,
 ):
     pl.seed_everything(0)
-    data = sample_gmm(num_datapoints, num_features, num_components, covariance_type)
+    data, means = sample_gmm(num_datapoints, num_features, num_components, covariance_type)
 
     estimator = SklearnGaussianMixture(
         num_components,
@@ -41,8 +38,8 @@ def test_sklearn(
         tol=0,
         n_init=1,
         max_iter=100,
-        reg_covar=1e-4,
         init_params="random",
+        means_init=means.numpy(),
     )
     benchmark(estimator.fit, data.numpy())
 
@@ -50,25 +47,19 @@ def test_sklearn(
 @pytest.mark.parametrize(
     ("num_datapoints", "num_features", "num_components", "covariance_type", "batch_size"),
     [
-        (10000, 8, 4, "spherical", None),
         (10000, 8, 4, "diag", None),
         (10000, 8, 4, "tied", None),
         (10000, 8, 4, "full", None),
-        (100000, 32, 16, "spherical", None),
         (100000, 32, 16, "diag", None),
         (100000, 32, 16, "tied", None),
         (100000, 32, 16, "full", None),
-        (1000000, 64, 64, "spherical", None),
         (1000000, 64, 64, "diag", None),
-        (10000, 8, 4, "spherical", 1000),
         (10000, 8, 4, "diag", 1000),
         (10000, 8, 4, "tied", 1000),
         (10000, 8, 4, "full", 1000),
-        (100000, 32, 16, "spherical", 10000),
         (100000, 32, 16, "diag", 10000),
         (100000, 32, 16, "tied", 10000),
         (100000, 32, 16, "full", 10000),
-        (1000000, 64, 64, "spherical", 100000),
         (1000000, 64, 64, "diag", 100000),
     ],
 )
@@ -81,14 +72,13 @@ def test_pycave(
     batch_size: Optional[int],
 ):
     pl.seed_everything(0)
-    data = sample_gmm(num_datapoints, num_features, num_components, covariance_type)
+    data, means = sample_gmm(num_datapoints, num_features, num_components, covariance_type)
 
     estimator = GaussianMixture(
         num_components,
         covariance_type=covariance_type,
-        init_strategy="random",
+        init_means=means,
         convergence_tolerance=0,
-        covariance_regularization=1e-4,
         batch_size=batch_size,
         trainer_params=dict(max_epochs=100),
     )
@@ -98,30 +88,21 @@ def test_pycave(
 @pytest.mark.parametrize(
     ("num_datapoints", "num_features", "num_components", "covariance_type", "batch_size"),
     [
-        (10000, 8, 4, "spherical", None),
         (10000, 8, 4, "diag", None),
         (10000, 8, 4, "tied", None),
         (10000, 8, 4, "full", None),
-        (100000, 32, 16, "spherical", None),
         (100000, 32, 16, "diag", None),
         (100000, 32, 16, "tied", None),
         (100000, 32, 16, "full", None),
-        (1000000, 64, 64, "spherical", None),
         (1000000, 64, 64, "diag", None),
-        (1000000, 64, 64, "tied", None),
-        (1000000, 64, 64, "full", None),
-        (10000, 8, 4, "spherical", 1000),
         (10000, 8, 4, "diag", 1000),
         (10000, 8, 4, "tied", 1000),
         (10000, 8, 4, "full", 1000),
-        (100000, 32, 16, "spherical", 10000),
         (100000, 32, 16, "diag", 10000),
         (100000, 32, 16, "tied", 10000),
         (100000, 32, 16, "full", 10000),
-        (1000000, 64, 64, "spherical", 100000),
         (1000000, 64, 64, "diag", 100000),
         (1000000, 64, 64, "tied", 100000),
-        (1000000, 64, 64, "full", 100000),
     ],
 )
 def test_pycave_gpu(
@@ -136,14 +117,13 @@ def test_pycave_gpu(
     torch.empty(1, device="cuda:0")
 
     pl.seed_everything(0)
-    data = sample_gmm(num_datapoints, num_features, num_components, covariance_type)
+    data, means = sample_gmm(num_datapoints, num_features, num_components, covariance_type)
 
     estimator = GaussianMixture(
         num_components,
         covariance_type=covariance_type,
-        init_strategy="random",
+        init_means=means,
         convergence_tolerance=0,
-        covariance_regularization=1e-4,
         batch_size=batch_size,
         trainer_params=dict(max_epochs=100, gpus=1),
     )

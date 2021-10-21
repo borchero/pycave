@@ -71,7 +71,7 @@ def test_fit_nll(
     num_components: int,
     covariance_type: CovarianceType,
 ):
-    data = sample_gmm(
+    data, _ = sample_gmm(
         num_datapoints=num_datapoints,
         num_features=num_features,
         num_components=num_components,

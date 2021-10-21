@@ -33,7 +33,7 @@ def test_fit_num_iter():
     [(100, True), (1, False)],
 )
 def test_fit_converged(num_epochs: int, converged: bool):
-    data = sample_gmm(
+    data, _ = sample_gmm(
         num_datapoints=10000,
         num_features=8,
         num_components=4,
@@ -60,7 +60,7 @@ def test_fit_inertia(
     num_features: int,
     num_centroids: int,
 ):
-    data = sample_gmm(
+    data, _ = sample_gmm(
         num_datapoints=num_datapoints,
         num_features=num_features,
         num_components=num_centroids,

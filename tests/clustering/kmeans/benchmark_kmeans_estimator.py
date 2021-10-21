@@ -31,7 +31,7 @@ def test_sklearn(
     init_strategy: str,
 ):
     pl.seed_everything(0)
-    data = sample_gmm(num_datapoints, num_features, num_centroids, "spherical")
+    data, _ = sample_gmm(num_datapoints, num_features, num_centroids, "spherical")
 
     estimator = SklearnKMeans(
         num_centroids,
@@ -70,7 +70,7 @@ def test_pycave(
     init_strategy: KMeansInitStrategy,
 ):
     pl.seed_everything(0)
-    data = sample_gmm(num_datapoints, num_features, num_centroids, "spherical")
+    data, _ = sample_gmm(num_datapoints, num_features, num_centroids, "spherical")
 
     estimator = KMeans(
         num_centroids,
@@ -113,7 +113,7 @@ def test_pycave_gpu(
     torch.empty(1, device="cuda:0")
 
     pl.seed_everything(0)
-    data = sample_gmm(num_datapoints, num_features, num_centroids, "spherical")
+    data, _ = sample_gmm(num_datapoints, num_features, num_centroids, "spherical")
 
     estimator = KMeans(
         num_centroids,

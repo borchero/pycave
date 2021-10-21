@@ -1,3 +1,5 @@
+# pylint: disable=missing-function-docstring
+from typing import Tuple
 import torch
 from pycave.bayes.core import CovarianceType
 from pycave.bayes.gmm import GaussianMixtureModel, GaussianMixtureModelConfig
@@ -5,7 +7,7 @@ from pycave.bayes.gmm import GaussianMixtureModel, GaussianMixtureModelConfig
 
 def sample_gmm(
     num_datapoints: int, num_features: int, num_components: int, covariance_type: CovarianceType
-) -> torch.Tensor:
+) -> Tuple[torch.Tensor, torch.Tensor]:
     config = GaussianMixtureModelConfig(num_components, num_features, covariance_type)
     model = GaussianMixtureModel(config)
 
@@ -14,4 +16,4 @@ def sample_gmm(
         torch.rand(num_components).unsqueeze(-1) * 10
     )
 
-    return model.sample(num_datapoints)
+    return model.sample(num_datapoints), model.means

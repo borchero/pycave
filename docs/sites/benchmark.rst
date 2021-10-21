@@ -16,42 +16,13 @@ Setup
 ^^^^^
 
 For measuring the performance of fitting a Gaussian mixture model, we fix the number of iterations
-after initialization to 100 to not measure any variances in the convergence criterion. Further, we
-perform random initialization to not measure the time taken for running K-Means (benchmarks for
-K-Means are available below).
+after initialization to 100 to not measure any variances in the convergence criterion. For
+initialization, we further set the known means that were used to generate data to not run into
+issues of degenerate covariance matrices. Thus, all benchmarks essentially measure the performance
+after K-means initialization has been run. Benchmarks for K-means itself are listed below.
 
 Results
 ^^^^^^^
-
-.. list-table:: Training Duration for Spherical Covariance (``[num_datapoints, num_features] -> num_components``)
-    :header-rows: 1
-    :stub-columns: 1
-    :widths: 3 2 2 2 2 2
-
-    * - 
-      - Scikit-Learn
-      - PyCave CPU (full)
-      - PyCave CPU (batches)
-      - PyCave GPU (full)
-      - PyCave GPU (batches)
-    * - ``[10k, 8] -> 4``
-      - 
-      - 
-      - 
-      - 
-      - 
-    * - ``[100k, 32] -> 16``
-      - 
-      - 
-      - 
-      - 
-      - 
-    * - ``[1M, 64] -> 64``
-      - 
-      - 
-      - 
-      - 
-      - 
 
 .. list-table:: Training Duration for Diagonal Covariance (``[num_datapoints, num_features] -> num_components``)
     :header-rows: 1
@@ -65,23 +36,23 @@ Results
       - PyCave GPU (full)
       - PyCave GPU (batches)
     * - ``[10k, 8] -> 4``
-      - 
-      - 
-      - 
-      - 
-      - 
+      - 366 ms
+      - <tbd>
+      - <tbd>
+      - 346 ms
+      - 3.6 s
     * - ``[100k, 32] -> 16``
-      - 
-      - 
-      - 
-      - 
-      - 
+      - 18.8 s
+      - <tbd>
+      - <tbd>
+      - 509 ms
+      - 3.8 s
     * - ``[1M, 64] -> 64``
-      - 
-      - 
-      - 
-      - 
-      - 
+      - <tbd>
+      - <tbd>
+      - <tbd>
+      - 7.7 s
+      - 15.2 s
 
 .. list-table:: Training Duration for Tied Covariance (``[num_datapoints, num_features] -> num_components``)
     :header-rows: 1
@@ -95,23 +66,23 @@ Results
       - PyCave GPU (full)
       - PyCave GPU (batches)
     * - ``[10k, 8] -> 4``
-      - 
-      - 
-      - 
-      - 
-      - 
+      - 706 ms
+      - <tbd>
+      - <tbd>
+      - 347 ms
+      - <tbd>
     * - ``[100k, 32] -> 16``
-      - 
-      - 
-      - 
-      - 
-      - 
+      - 74.9 s
+      - <tbd>
+      - <tbd>
+      - 900 ms
+      - 3.7 s
     * - ``[1M, 64] -> 64``
-      - 
-      - 
-      - 
-      - 
-      - 
+      - --
+      - --
+      - --
+      - 64.3 s
+      - --
 
 .. list-table:: Training Duration for Full Covariance (``[num_datapoints, num_features] -> num_components``)
     :header-rows: 1
@@ -125,23 +96,17 @@ Results
       - PyCave GPU (full)
       - PyCave GPU (batches)
     * - ``[10k, 8] -> 4``
-      - 
-      - 
-      - 
-      - 
-      - 
+      - 1.2 s
+      - <tbd>
+      - <tbd>
+      - 480 ms
+      - 4.2 s
     * - ``[100k, 32] -> 16``
-      - 
-      - 
-      - 
-      - 
-      - 
-    * - ``[1M, 64] -> 64``
-      - 
-      - 
-      - 
-      - 
-      - 
+      - 112 s
+      - <tbd>
+      - <tbd>
+      - <tbd>
+      - <tbd>
 
 Summary
 ^^^^^^^
