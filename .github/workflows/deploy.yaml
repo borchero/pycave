@@ -5,12 +5,18 @@ on:
 
 jobs:
   build:
+    name: Publish
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/borchero/poetry:1.1.6
+      image: python:3.8-buster
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Install Poetry
+        run: |
+          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | \
+          python - \
+          && echo "PATH=$HOME/.poetry/bin:$PATH" >> $GITHUB_ENV
       - name: Build Wheel
         run: poetry build
       - name: Publish to PyPi
