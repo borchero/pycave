@@ -2,26 +2,43 @@
 import math
 from typing import Optional
 import pytest
-import pytorch_lightning as pl
 import torch
 from sklearn.cluster import KMeans as SklearnKMeans  # type: ignore
 from tests._data.gmm import sample_gmm
 from pycave.clustering import KMeans
 
 
-def test_recover():
-    torch.manual_seed(42)
+def test_fit_num_iter():
+    # The k-means++ iterations should find the centroids. Afterwards, it should only take a single
+    # epoch until the centroids do not change anymore.
+    data = torch.cat([torch.randn(1000, 4) * 0.1 - 100, torch.randn(1000, 4) * 0.1 + 100])
 
     estimator = KMeans(2)
-    data = torch.cat([torch.randn(1000, 4) * 0.1 - 1, torch.randn(1000, 4) * 0.1 + 1])
     estimator.fit(data)
 
-    ordering = estimator.model_.centroids[:, 0].argsort()
-    expected = torch.as_tensor([[-1.0, -1.0, -1.0, -1.0], [1.0, 1.0, 1.0, 1.0]])[ordering]
-
-    assert torch.allclose(estimator.model_.centroids, expected, atol=1e-2)
+    assert estimator.num_iter_ == 1
 
 
+@pytest.mark.flaky(max_runs=2, min_passes=1)
+@pytest.mark.parametrize(
+    ("num_epochs", "converged"),
+    [(100, True), (1, False)],
+)
+def test_fit_converged(num_epochs: int, converged: bool):
+    data = sample_gmm(
+        num_datapoints=10000,
+        num_features=8,
+        num_components=4,
+        covariance_type="spherical",
+    )
+
+    estimator = KMeans(4, trainer_params=dict(max_epochs=num_epochs))
+    estimator.fit(data)
+
+    assert estimator.converged_ == converged
+
+
+@pytest.mark.flaky(max_runs=2, min_passes=1)
 @pytest.mark.parametrize(
     ("num_datapoints", "batch_size", "num_features", "num_centroids"),
     [
@@ -35,8 +52,6 @@ def test_fit_inertia(
     num_features: int,
     num_centroids: int,
 ):
-    pl.seed_everything(0)
-
     data = sample_gmm(
         num_datapoints=num_datapoints,
         num_features=num_features,

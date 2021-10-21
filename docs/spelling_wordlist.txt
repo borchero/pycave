@@ -4,6 +4,7 @@ boolean
 centroid
 Centroids
 centroids
+Checkpointing
 Cholesky
 covariances
 dataclass
@@ -16,7 +17,10 @@ datasets
 diag
 dimensionality
 dtype
+Elkan
+Frobenius
 Gaussians
+GiB
 gmm
 init
 initializer
@@ -33,7 +37,10 @@ parallelize
 params
 precisions
 pycave
+runtime
 scikit
 SequenceData
+stdout
 TabularData
 Utils
+Xeon
