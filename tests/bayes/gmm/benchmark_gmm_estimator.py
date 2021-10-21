@@ -48,7 +48,7 @@ def test_sklearn(
 
 
 @pytest.mark.parametrize(
-    ("num_datapoints", "num_features", "num_components", "covariance_type"),
+    ("num_datapoints", "num_features", "num_components", "covariance_type", "batch_size"),
     [
         (10000, 8, 4, "spherical", None),
         (10000, 8, 4, "diag", None),
@@ -99,7 +99,7 @@ def test_pycave(
 
 
 @pytest.mark.parametrize(
-    ("num_datapoints", "num_features", "num_components", "covariance_type"),
+    ("num_datapoints", "num_features", "num_components", "covariance_type", "batch_size"),
     [
         (10000, 8, 4, "spherical", None),
         (10000, 8, 4, "diag", None),
