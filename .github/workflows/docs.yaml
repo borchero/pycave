@@ -1,9 +1,9 @@
 name: Generate Documentation
 on:
-  - release:
-      types: [published]
-  - push
-  - pull_request
+  release:
+    types: [published]
+  push:
+  pull_request:
 
 jobs:
   build:
