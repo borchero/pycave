@@ -7,8 +7,15 @@ PyCave allows you to run traditional machine learning models on CPU, GPU, and ev
 nodes. All models are implemented in [PyTorch](https://pytorch.org/) and provide an `Estimator` API
 that is fully compatible with [scikit-learn](https://scikit-learn.org/stable/).
 
-Full documentation and benchmarks are available on
-[pycave.borchero.com](https://pycave.borchero.com).
+For Gaussian mixture model, PyCave allows for 100x speed ups when using a GPU and enables to train
+on markedly larger datasets via mini-batch training. The full suite of benchmarks run to compare
+PyCave models against scikit-learn models is available on the
+[documentation website](https://pycave.borchero.com/sites/benchmark.html).
+
+_PyCave version 3 is a complete rewrite of PyCave which is tested much more rigorously, depends on
+well-maintained libraries and is tuned for better performance. While you are, thus, highly
+encouraged to upgrade, refer to [pycave-v2.borchero.com](https://pycave-v2.borchero.com) for
+documentation on PyCave 2._
 
 ## Features
 
