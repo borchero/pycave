@@ -66,7 +66,8 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
             batch_size: The batch size to use when fitting the model. If not provided, the full
                 data will be used as a single batch. Set this if the full data does not fit into
                 memory.
-            num_workers: The number of workers to use for loading the data.
+            num_workers: The number of workers to use for loading the data. Only used if a PyTorch
+                dataset is passed to :meth:`fit` or related methods.
             trainer_params: Initialization parameters to use when initializing a PyTorch Lightning
                 trainer. By default, it disables various stdout logs unless PyCave is configured to
                 do verbose logging. Checkpointing and logging are disabled regardless of the log
@@ -76,13 +77,15 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
 
         Note:
             The number of epochs passed to the initializer only define the number of optimization
-            epochs. Prior to that, initialization is run.
+            epochs. Prior to that, initialization is run which may perform additional iterations
+            through the data..
 
         Note:
             For batch training, the number of epochs run (i.e. the number of passes through the
-            data), does not align with the number of epochs passed to the optimizer. This is
-            because the EM-algorithm needs to be split up across two epochs. The actual number of
-            minimum/maximum epochs is, thus, doubled.
+            data), does not align with the number of epochs passed to the initializer. This is
+            because the EM algorithm needs to be split up across two epochs. The actual number of
+            minimum/maximum epochs is, thus, doubled. Nonetheless, :attr:`num_iter_` indicates how
+            many EM iterations have been run.
         """
         super().__init__(
             batch_size=batch_size,
@@ -105,7 +108,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
     def fit(self, data: TabularData) -> GaussianMixture:
         """
         Fits the Gaussian mixture on the provided data, estimating component priors, means and
-        covariances.
+        covariances. Parameters are estimated using the EM algorithm.
 
         Args:
             data: The tabular data to fit on. The dimensionality of the Gaussian mixture is
@@ -167,7 +170,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
             is_batch_training=is_batch_training,
         )
         trainer = self._trainer(
-            max_epochs=self.trainer_params["max_epochs"] * (1 + int(is_batch_training))
+            max_epochs=cast(int, self.trainer_params["max_epochs"]) * (1 + int(is_batch_training))
         )
         trainer.fit(module, loader)
 

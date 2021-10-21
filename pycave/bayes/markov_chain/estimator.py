@@ -10,12 +10,9 @@ from .model import MarkovChainModel, MarkovChainModelConfig
 
 class MarkovChain(Estimator[MarkovChainModel]):
     """
-    Probabilistic model for observed state transitions.
-
-    A Markov chain can be used to learn the initial probabilities of a set of states and the
-    transition probabilities between them. It is similar to a hidden Markov model, only that the
-    hidden states are known. More information is available
-    `here <https://en.wikipedia.org/wiki/Markov_chain>`_.
+    Probabilistic model for observed state transitions. The Markov chain is similar to the hidden
+    Markov model, only that the hidden states are known. More information on the Markov chain is
+    available on `Wikipedia <https://en.wikipedia.org/wiki/Markov_chain>`_.
 
     See also:
         .. currentmodule:: pycave.bayes.markov_chain
@@ -43,14 +40,17 @@ class MarkovChain(Estimator[MarkovChainModel]):
                 through the data. Consider setting this option explicitly if you're fitting a lot
                 of data.
             symmetric: Whether the transitions between states should be considered symmetric.
-            batch_size: The batch size to use when fitting the model. If not provided, all data
-                will be used as a single batch. You should consider setting this option if your
-                data does not fit into memory.
-            num_workers: The number of workers to use for loading the data. By default, it loads
-                data on the main process.
+            batch_size: The batch size to use when fitting the model. If not provided, the full
+                data will be used as a single batch. Set this if the full data does not fit into
+                memory.
+            num_workers: The number of workers to use for loading the data. Only used if a PyTorch
+                dataset is passed to :meth:`fit` or related methods.
             trainer_params: Initialization parameters to use when initializing a PyTorch Lightning
-                trainer. This estimator sets an overridable default of `checkpoint_callback=False`
-                and enforces `max_epochs=1`.
+                trainer. By default, it disables various stdout logs unless PyCave is configured to
+                do verbose logging. Checkpointing and logging are disabled regardless of the log
+                level. This estimator further enforces the following parameters:
+
+                - ``max_epochs=1``
         """
         super().__init__(
             user_params=trainer_params,
@@ -93,6 +93,10 @@ class MarkovChain(Estimator[MarkovChainModel]):
 
         Returns:
             The sampled sequences as a tensor of shape ``[num_sequences, sequence_length]``.
+
+        Note:
+            This method does not parallelize across multiple processes, i.e. performs no
+            synchronization.
         """
         return self.model_.sample(num_sequences, sequence_length)
 
@@ -106,6 +110,9 @@ class MarkovChain(Estimator[MarkovChainModel]):
 
         Returns:
             The average NLL for all sequences.
+
+        Note:
+            See :meth:`score_samples` to obtain the NLL values for individual sequences.
         """
         result = self._trainer().test(
             MarkovChainLightningModule(self.model_),
@@ -123,6 +130,11 @@ class MarkovChain(Estimator[MarkovChainModel]):
 
         Returns:
             A tensor of shape ``[num_sequences]`` with the NLLs for each individual sequence.
+
+        Attention:
+            When calling this function in a multi-process environment, each process receives only
+            a subset of the predictions. If you want to aggregate predictions, make sure to gather
+            the values returned from this method.
         """
         result = self._trainer().predict(
             MarkovChainLightningModule(self.model_),

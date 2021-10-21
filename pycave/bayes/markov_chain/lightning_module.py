@@ -8,7 +8,7 @@ from .model import MarkovChainModel
 
 class MarkovChainLightningModule(NonparametricLightningModule):
     """
-    Lightning module for trianing and evaluating a Markov chain.
+    Lightning module for training and evaluating a Markov chain.
     """
 
     def __init__(self, model: MarkovChainModel, symmetric: bool = False):

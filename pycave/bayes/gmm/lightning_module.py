@@ -180,6 +180,12 @@ class GaussianMixtureKmeansInitLightningModule(NonparametricLightningModule):
     """
 
     def __init__(self, model: GaussianMixtureModel, covariance_regularization: float):
+        """
+        Args:
+            model: The model whose parameters to initialize.
+            covariance_regularization: A small value which is added to the diagonal of the
+                covariance matrix to ensure that it is positive semi-definite.
+        """
         super().__init__()
 
         self.model = model
@@ -237,6 +243,14 @@ class GaussianMixtureRandomInitLightningModule(NonparametricLightningModule):
         covariance_regularization: float,
         is_batch_training: bool,
     ):
+        """
+        Args:
+            model: The model whose parameters to initialize.
+            covariance_regularization: A small value which is added to the diagonal of the
+                covariance matrix to ensure that it is positive semi-definite.
+            is_batch_training: Whether training is performed on mini-batches instead of the entire
+                data at once.
+        """
         super().__init__()
 
         self.model = model

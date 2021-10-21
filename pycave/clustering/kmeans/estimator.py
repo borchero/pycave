@@ -15,7 +15,8 @@ from .types import KMeansInitStrategy
 
 class KMeans(Estimator[KMeansModel], TransformerMixin[TabularData, torch.Tensor]):
     """
-    Model for clustering data into a predefined number of clusters.
+    Model for clustering data into a predefined number of clusters. More information on K-means
+    clustering is available on `Wikipedia <https://en.wikipedia.org/wiki/K-means_clustering>`_.
 
     See also:
         .. currentmodule:: pycave.clustering.kmeans
@@ -57,11 +58,16 @@ class KMeans(Estimator[KMeansModel], TransformerMixin[TabularData, torch.Tensor]
             num_workers: The number of workers to use for loading the data. Only used if a PyTorch
                 dataset is passed to :meth:`fit` or related methods.
             trainer_params: Initialization parameters to use when initializing a PyTorch Lightning
-                trainer. This estimator sets the following overridable defaults:
+                trainer. By default, it disables various stdout logs unless PyCave is configured to
+                do verbose logging. Checkpointing and logging are disabled regardless of the log
+                level. This estimator further sets the following overridable defaults:
 
                 - ``max_epochs=300``
-                - ``checkpoint_callback=False``
-                - ``log_every_n_steps=1``
+
+        Note:
+            The number of epochs passed to the initializer only define the number of optimization
+            epochs. Prior to that, initialization is run which may perform additional iterations
+            through the data.
         """
         super().__init__(
             batch_size=batch_size,
@@ -79,7 +85,7 @@ class KMeans(Estimator[KMeansModel], TransformerMixin[TabularData, torch.Tensor]
 
     def fit(self, data: TabularData) -> KMeans:
         """
-        Fits the KMeans model on the provided data by running the EM algorithm.
+        Fits the KMeans model on the provided data by running Lloyd's algorithm.
 
         Args:
             data: The tabular data to fit on. The dimensionality of the KMeans model is
@@ -150,12 +156,10 @@ class KMeans(Estimator[KMeansModel], TransformerMixin[TabularData, torch.Tensor]
             Tensor of shape ``[num_datapoints]`` with the index of the closest cluster for each
             datapoint.
 
-        Note:
+        Attention:
             When calling this function in a multi-process environment, each process receives only
             a subset of the predictions. If you want to aggregate predictions, make sure to gather
-            the values returned from this method. Take care that this only works when the number
-            of predictions in each process is equal, i.e. if the provided data is divisible by the
-            number of processes.
+            the values returned from this method.
         """
         result = self._trainer().predict(
             KMeansLightningModule(self.model_, predict_target="assignments"),
@@ -173,6 +177,9 @@ class KMeans(Estimator[KMeansModel], TransformerMixin[TabularData, torch.Tensor]
 
         Returns:
             The average inertia.
+
+        Note:
+            See :meth:`score_samples` to obtain the inertia for individual sequences.
         """
         result = self._trainer().test(
             KMeansLightningModule(self.model_),
@@ -180,6 +187,28 @@ class KMeans(Estimator[KMeansModel], TransformerMixin[TabularData, torch.Tensor]
             verbose=False,
         )
         return result[0]["inertia"]
+
+    def score_samples(self, data: TabularData) -> torch.Tensor:
+        """
+        Computes the inertia for each of the the provided datapoints. That is, it computes the mean
+        squared distance of each datapoint to its closest centroid.
+
+        Args:
+            data: The data for which to compute the inertia values.
+
+        Returns:
+            A tensor of shape ``[num_datapoints]`` with the inertia of each datapoint.
+
+        Attention:
+            When calling this function in a multi-process environment, each process receives only
+            a subset of the predictions. If you want to aggregate predictions, make sure to gather
+            the values returned from this method.
+        """
+        result = self._trainer().predict(
+            KMeansLightningModule(self.model_, predict_target="inertias"),
+            self._init_data_loader(data, for_training=False),
+        )
+        return torch.cat(cast(List[torch.Tensor], result))
 
     def transform(self, data: TabularData) -> torch.Tensor:
         """
@@ -192,6 +221,11 @@ class KMeans(Estimator[KMeansModel], TransformerMixin[TabularData, torch.Tensor]
         Returns:
             A tensor of shape ``[num_datapoints, num_clusters]`` with the distances to the cluster
             centroids.
+
+        Attention:
+            When calling this function in a multi-process environment, each process receives only
+            a subset of the predictions. If you want to aggregate predictions, make sure to gather
+            the values returned from this method.
         """
         result = self._trainer().predict(
             KMeansLightningModule(self.model_, predict_target="distances"),

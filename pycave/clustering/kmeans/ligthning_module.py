@@ -28,11 +28,14 @@ class KMeansLightningModule(NonparametricLightningModule):
         self,
         model: KMeansModel,
         convergence_tolerance: float = 1e-4,
-        predict_target: Literal["assignments", "distances"] = "assignments",
+        predict_target: Literal["assignments", "distances", "inertias"] = "assignments",
     ):
         """
         Args:
-            model:
+            model: The model to train.
+            convergence_tolerance: Training is conducted until the Frobenius norm of the change
+                between cluster centroids falls below this threshold.
+            predict_target: Whether to predict cluster assigments or distances to clusters.
         """
         super().__init__()
 
@@ -86,9 +89,11 @@ class KMeansLightningModule(NonparametricLightningModule):
         self.log("inertia", self.metric_inertia)
 
     def predict_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:
-        distances, assignments, _ = self.model.forward(batch)
+        distances, assignments, inertias = self.model.forward(batch)
         if self.predict_target == "assignments":
             return assignments
+        if self.predict_target == "inertias":
+            return inertias
         return distances
 
 
@@ -103,6 +108,10 @@ class KmeansRandomInitLightningModule(NonparametricLightningModule):
     """
 
     def __init__(self, model: KMeansModel):
+        """
+        Args:
+            model: The model to initialize.
+        """
         super().__init__()
 
         self.model = model
@@ -138,6 +147,12 @@ class KmeansPlusPlusInitLightningModule(NonparametricLightningModule):
     """
 
     def __init__(self, model: KMeansModel, is_batch_training: bool):
+        """
+        Args:
+            model: The model to initialize.
+            is_batch_training: Whether training is performed on mini-batches instead of the entire
+                data at once.
+        """
         super().__init__()
 
         self.model = model
@@ -252,6 +267,10 @@ class FeatureVarianceLightningModule(NonparametricLightningModule):
     """
 
     def __init__(self, variances: torch.Tensor):
+        """
+        Args:
+            variances: The output tensor where the variances are stored.
+        """
         super().__init__()
 
         self.mean_aggregator = BatchAverager(

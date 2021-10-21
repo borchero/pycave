@@ -22,7 +22,8 @@ class KMeansModelConfig:
 
 class KMeansModel(ConfigModule[KMeansModelConfig]):
     """
-    PyTorch module for the K-Means model. It manages a set of cluster centers as buffers.
+    PyTorch module for the K-Means model. The centroids managed by this model are non-trainable
+    parameters.
     """
 
     def __init__(self, config: KMeansModelConfig):

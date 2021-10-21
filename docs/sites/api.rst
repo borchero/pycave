@@ -75,6 +75,7 @@ Base Classes
 
     :template: classes/mixin.rst
 
+    PredictorMixin
     TransformerMixin
 
     :template: classes/only_methods.rst

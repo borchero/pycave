@@ -23,9 +23,8 @@ class MarkovChainModelConfig:
 
 class MarkovChainModel(ConfigModule[MarkovChainModelConfig]):
     """
-    PyTorch module for a Markov chain. It manages two buffers: the initial state probabilities and
-    the transition probabilities. As the probabilities are not learnt via gradient-based
-    optimization methods, this module does not have trainable parameters.
+    PyTorch module for a Markov chain. The initial state probabilities as well as the transition
+    probabilities are non-trainable parameters.
     """
 
     def __init__(self, config: MarkovChainModelConfig):

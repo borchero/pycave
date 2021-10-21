@@ -27,12 +27,8 @@ class GaussianMixtureModelConfig:
 
 class GaussianMixtureModel(ConfigModule[GaussianMixtureModelConfig]):
     """
-    PyTorch module for a Gaussian mixture model. The
-    The Gaussian Mixture model is the PyTorch module for the GMM. It manages three kinds of
-    parameters: the component probabilities, their means, and covariances. For computational
-    efficiency, the latter are represented as an inverted matrix obtained via Cholesky
-    decomposition. As parameters are typically optimized via the EM algorithm instead of
-    gradient-based methods, the GMM does not have trainable parameters.
+    PyTorch module for a Gaussian mixture model. Covariances are represented via their Cholesky
+    decomposition for computational efficiency. The model does not have trainable parameters.
     """
 
     #: The probabilities of each component, buffer of shape ``[num_components]``.
