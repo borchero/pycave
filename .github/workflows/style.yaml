@@ -13,7 +13,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Poetry
-        run: curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+        run: |
+          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | \
+          python - \
+          && source $HOME/.poetry/env
       - name: Install Dependencies
         run: poetry install --no-root --no-interaction --no-ansi
       - name: Run Black
@@ -28,7 +31,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Poetry
-        run: curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+        run: |
+          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | \
+          python - \
+          && source $HOME/.poetry/env
       - name: Install Dependencies
         run: poetry install --no-root --no-interaction --no-ansi
       - name: Run isort
@@ -43,7 +49,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Poetry
-        run: curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+        run: |
+          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | \
+          python - \
+          && source $HOME/.poetry/env
       - name: Install Dependencies
         run: poetry install --no-root --no-interaction --no-ansi
       - name: Run Pylint

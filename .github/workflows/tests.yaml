@@ -16,7 +16,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Poetry
-        run: curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+        run: |
+          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | \
+          python - \
+          && source $HOME/.poetry/env
       - name: Install Library
         run: poetry install --no-interaction --no-ansi
       - name: Run Pytest
