@@ -33,6 +33,7 @@ def test_fit_num_iter(batch_size: Optional[int]):
     assert estimator.num_iter_ == 2
 
 
+@pytest.mark.flaky(max_runs=3, min_passes=1)
 @pytest.mark.parametrize(
     ("batch_size", "max_epochs", "converged"),
     [(2, 1, False), (2, 3, True), (None, 1, False), (None, 3, True)],

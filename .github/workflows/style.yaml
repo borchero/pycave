@@ -79,5 +79,5 @@ jobs:
         run: poetry install --no-root --no-interaction --no-ansi
       - name: Install Npm Dependencies
         run: npm ci
-      - name: Run PyRight
+      - name: Run Pyright
         run: poetry run npm run lint
