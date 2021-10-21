@@ -23,4 +23,4 @@ jobs:
       - name: Install Library
         run: poetry install --no-interaction --no-ansi
       - name: Run Pytest
-        run: pytest tests
+        run: poetry run pytest tests
