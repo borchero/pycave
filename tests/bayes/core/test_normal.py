@@ -232,5 +232,4 @@ def _assert_log_prob(
 ) -> None:
     distribution = MultivariateNormal(means, covars)
     expected = distribution.log_prob(x.unsqueeze(1))
-    print(expected)
     assert torch.allclose(actual, expected, rtol=1e-3)

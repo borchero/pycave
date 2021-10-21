@@ -1,4 +1,3 @@
-from typing import Optional
 import torch
 from torch.nn.utils.rnn import PackedSequence
 from torchmetrics import AverageMeter
@@ -7,13 +6,17 @@ from pycave.core import NonparametricLightningModule
 from .model import MarkovChainModel
 
 
-# pylint: disable=abstract-method
 class MarkovChainLightningModule(NonparametricLightningModule):
     """
-    The lightning module...
+    Lightning module for trianing and evaluating a Markov chain.
     """
 
     def __init__(self, model: MarkovChainModel, symmetric: bool = False):
+        """
+        Args:
+            model: The model to train or evaluate.
+            symmetric: Whether transition probabilities should be symmetric.
+        """
         super().__init__()
 
         self.model = model
@@ -43,6 +46,6 @@ class MarkovChainLightningModule(NonparametricLightningModule):
         self.log("nll", self.metric_nll)
 
     def predict_step(  # pylint: disable=signature-differs
-        self, batch: PackedSequence, batch_idx: int, dataloader_idx: Optional[int]
+        self, batch: PackedSequence, batch_idx: int
     ) -> torch.Tensor:
-        return self.model(batch)
+        return -self.model(batch)

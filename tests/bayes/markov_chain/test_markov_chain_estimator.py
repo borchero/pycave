@@ -1,6 +1,7 @@
 # pylint: disable=missing-function-docstring
 import math
 from typing import Tuple
+import pytest
 import torch
 from pycave.bayes import MarkovChain
 
@@ -12,9 +13,8 @@ def test_fit_automatic_config():
     assert chain.model_.config.num_states == 50
 
 
+@pytest.mark.flaky(max_runs=3, min_passes=1)
 def test_sample_and_fit():
-    torch.manual_seed(42)
-
     chain = MarkovChain(2)
     initial_probs, transition_probs = _set_probs(chain)
     sample = chain.sample(1000000, 10)
@@ -30,15 +30,14 @@ def test_score():
     chain = MarkovChain(2)
     test_data, expected = _set_sample_data(chain)
     actual = chain.score(test_data)
-    expected = (expected - math.log(expected.size(0))).logsumexp(0).item()
-    assert math.isclose(actual, expected)
+    assert math.isclose(actual, -expected.mean())
 
 
 def test_score_samples():
     chain = MarkovChain(2)
     test_data, expected = _set_sample_data(chain)
     actual = chain.score_samples(test_data)
-    assert torch.allclose(actual, expected)
+    assert torch.allclose(actual, -expected)
 
 
 # -------------------------------------------------------------------------------------------------

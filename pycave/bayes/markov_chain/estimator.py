@@ -53,7 +53,6 @@ class MarkovChain(Estimator[MarkovChainModel]):
                 and enforces `max_epochs=1`.
         """
         super().__init__(
-            default_params=dict(checkpoint_callback=False),
             user_params=trainer_params,
             overwrite_params=dict(max_epochs=1),
         )
@@ -73,14 +72,15 @@ class MarkovChain(Estimator[MarkovChainModel]):
         Returns:
             The fitted Markov chain.
         """
-        self._init_trainer()
-
-        config = MarkovChainModelConfig(num_states=self.num_states or _get_num_states(sequences))
+        config = MarkovChainModelConfig(
+            num_states=self.num_states or _get_num_states(sequences),
+        )
         self._model = MarkovChainModel(config)
 
-        loader = self._get_data_loader(sequences)
-        module = MarkovChainLightningModule(self.model_, self.symmetric)
-        self.trainer_.fit(module, loader)
+        self._trainer().fit(
+            MarkovChainLightningModule(self.model_, self.symmetric),
+            self._init_data_loader(sequences, for_training=True),
+        )
         return self
 
     def sample(self, num_sequences: int, sequence_length: int) -> torch.Tensor:
@@ -107,9 +107,11 @@ class MarkovChain(Estimator[MarkovChainModel]):
         Returns:
             The average NLL for all sequences.
         """
-        module = MarkovChainLightningModule(self.model_)
-        loader = self._get_data_loader(sequences)
-        result = self.trainer_.test(module, loader, verbose=False)
+        result = self._trainer().test(
+            MarkovChainLightningModule(self.model_),
+            self._init_data_loader(sequences, for_training=False),
+            verbose=False,
+        )
         return result[0]["nll"]
 
     def score_samples(self, sequences: SequenceData) -> torch.Tensor:
@@ -122,9 +124,11 @@ class MarkovChain(Estimator[MarkovChainModel]):
         Returns:
             A tensor of shape ``[num_sequences]`` with the NLLs for each individual sequence.
         """
-        module = MarkovChainLightningModule(self.model_)
-        loader = self._get_data_loader(sequences)
-        result = self.trainer_.predict(module, loader, return_predictions=True)
+        result = self._trainer().predict(
+            MarkovChainLightningModule(self.model_),
+            self._init_data_loader(sequences, for_training=False),
+            return_predictions=True,
+        )
         return torch.stack(cast(List[torch.Tensor], result))
 
     def _data_collate_fn(self, for_tensor: bool) -> Optional[Callable[[Any], Any]]:

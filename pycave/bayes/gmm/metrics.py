@@ -131,7 +131,7 @@ class CovarianceAggregator(Metric):
         # covariance_type == "full"
         result = self.covariance_sum / self.component_weights.unsqueeze(-1).unsqueeze(-1)
         diag_mask = (
-            torch.eye(self.num_features, device=result.device)
+            torch.eye(self.num_features, device=result.device, dtype=result.dtype)
             .bool()
             .unsqueeze(0)
             .expand(self.num_components, -1, -1)

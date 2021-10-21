@@ -26,7 +26,7 @@ class StateCountAggregator(Metric):
 
         self.transition_counts: torch.Tensor
         self.add_state(
-            "transition_counts", torch.zeros(num_states, num_states), dist_reduce_fx="sum"
+            "transition_counts", torch.zeros(num_states, num_states).view(-1), dist_reduce_fx="sum"
         )
 
     def update(self, sequences: PackedSequence) -> None:
@@ -50,9 +50,10 @@ class StateCountAggregator(Metric):
 
     def compute(self) -> Tuple[torch.Tensor, torch.Tensor]:
         initial_probs = self.initial_counts / self.initial_counts.sum()
+        transition_counts = self.transition_counts.view(self.num_states, self.num_states)
 
         if self.symmetric:
-            self.transition_counts.add_(self.transition_counts.t())
-        transition_probs = self.transition_counts / self.transition_counts.sum(1, keepdim=True)
+            self.transition_counts.add_(transition_counts.t())
+        transition_probs = transition_counts / transition_counts.sum(1, keepdim=True)
 
         return initial_probs, transition_probs

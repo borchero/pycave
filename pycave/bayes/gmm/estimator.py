@@ -6,7 +6,11 @@ from pycave.bayes.core import CovarianceType
 from pycave.clustering import KMeans
 from pycave.core import Estimator, PredictorMixin
 from pycave.data import TabularData
-from .lightning_module import GaussianMixtureLightningModule
+from .lightning_module import (
+    GaussianMixtureKmeansInitLightningModule,
+    GaussianMixtureLightningModule,
+    GaussianMixtureRandomInitLightningModule,
+)
 from .model import GaussianMixtureModel, GaussianMixtureModelConfig
 from .types import GaussianMixtureInitStrategy
 
@@ -72,7 +76,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
 
         Note:
             The number of epochs passed to the initializer only define the number of optimization
-            epochs. Prior to that, a single initialization epoch is run.
+            epochs. Prior to that, initialization is run.
 
         Note:
             For batch training, the number of epochs run (i.e. the number of passes through the
@@ -110,18 +114,6 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
         Returns:
             The fitted Gaussian mixture.
         """
-        # Init the trainer
-        batch_training = self._uses_batch_training(data)  # type: ignore
-        self._init_trainer(
-            updated_params=dict(
-                max_epochs=(
-                    self.trainer_params["max_epochs"] * (int(batch_training) + 1)
-                    + int(self.init_strategy != "kmeans")
-                    + 1
-                )
-            )
-        )
-
         # Initialize the model
         num_features = len(data[0])
         config = GaussianMixtureModelConfig(
@@ -131,41 +123,60 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
         )
         self._model = GaussianMixtureModel(config)
 
-        # Initialize the means if required
-        if self.init_strategy == "kmeans":
-            logger.info("Running k-means initialization.")
+        # Setup the data loading
+        is_batch_training = self._uses_batch_training(data)  # type: ignore
+        loader = self._init_data_loader(data, for_training=True)
+
+        # Run k-means if required
+        if self.init_strategy in ("kmeans", "kmeans++"):
+            logger.info("Fitting K-means estimator...")
+            params = self.trainer_params_user
+            if self.init_strategy == "kmeans++":
+                params = {**(params or {}), **dict(max_epochs=0)}
+
             estimator = KMeans(
                 self.num_components,
                 batch_size=self.batch_size,
                 num_workers=self.num_workers,
-                trainer_params=self.trainer_params_user,
+                trainer_params=params,
             ).fit(data)
             self.model_.means.copy_(estimator.model_.centroids)
 
+        # Run initialization
+        logger.info("Running initialization...")
+        if self.init_strategy in ("kmeans", "kmeans++"):
+            module = GaussianMixtureKmeansInitLightningModule(
+                self.model_,
+                covariance_regularization=self.covariance_regularization,
+            )
+            self._trainer(max_epochs=1).fit(module, loader)
+        else:
+            module = GaussianMixtureRandomInitLightningModule(
+                self.model_,
+                covariance_regularization=self.covariance_regularization,
+                is_batch_training=is_batch_training,
+            )
+            self._trainer(max_epochs=1 + int(is_batch_training)).fit(module, loader)
+
         # Fit model
+        logger.info("Fitting Gaussian mixture...")
         module = GaussianMixtureLightningModule(
             self.model_,
-            init_strategy=self.init_strategy,  # type: ignore
             convergence_tolerance=self.convergence_tolerance,
             covariance_regularization=self.covariance_regularization,
-            batch_training=batch_training,
+            is_batch_training=is_batch_training,
         )
-        self.trainer_.fit(module, self._init_data_loader(data, for_training=True))
+        trainer = self._trainer(
+            max_epochs=self.trainer_params["max_epochs"] * (1 + int(is_batch_training))
+        )
+        trainer.fit(module, loader)
 
         # Assign convergence properties
         self.num_iter_ = module.current_epoch + 1
-        if batch_training:
-            # For batch training, the actual number of iterations is lower. For random
-            # initialization, this should be an even number, for kmeans initialization, it should
-            # be an odd number.
+        if is_batch_training:
             self.num_iter_ //= 2
-        # For initialization, one optimization cycle is used. However, for batch training, this is
-        # already absorbed for the kmeans initialization due to the integer division.
-        if not (batch_training and self.init_strategy == "kmeans"):
-            self.num_iter_ -= 1
-
-        self.converged_ = self.trainer_.should_stop
-        self.nll_ = cast(float, self.trainer_.callback_metrics["nll"].item())
+        self.converged_ = trainer.should_stop
+        self.nll_ = cast(float, trainer.callback_metrics["nll"].item())
         return self
 
     def sample(self, num_datapoints: int) -> torch.Tensor:
@@ -197,7 +208,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
         Note:
             See :meth:`score_samples` to obtain NLL values for individual datapoints.
         """
-        result = self.trainer_.test(
+        result = self._trainer().test(
             GaussianMixtureLightningModule(self.model_),
             self._init_data_loader(data, for_training=False),
             verbose=False,
@@ -219,7 +230,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
             a subset of the predictions. If you want to aggregate predictions, make sure to gather
             the values returned from this method.
         """
-        result = self.trainer_.predict(
+        result = self._trainer().predict(
             GaussianMixtureLightningModule(self.model_),
             self._init_data_loader(data, for_training=False),
         )
@@ -264,7 +275,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
             a subset of the predictions. If you want to aggregate predictions, make sure to gather
             the values returned from this method.
         """
-        result = self.trainer_.predict(
+        result = self._trainer().predict(
             GaussianMixtureLightningModule(self.model_),
             self._init_data_loader(data, for_training=False),
         )

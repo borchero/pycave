@@ -96,6 +96,10 @@ class KMeans(Estimator[KMeansModel], TransformerMixin[TabularData, torch.Tensor]
         )
         self._model = KMeansModel(config)
 
+        # Setup the data loading
+        is_batch_training = self._uses_batch_training(data)  # type: ignore
+        loader = self._init_data_loader(data, for_training=True)
+
         # First, initialize the centroids
         if self.init_strategy == "random":
             module = KmeansRandomInitLightningModule(self.model_)
@@ -103,20 +107,18 @@ class KMeans(Estimator[KMeansModel], TransformerMixin[TabularData, torch.Tensor]
         else:
             module = KmeansPlusPlusInitLightningModule(
                 self.model_,
-                is_batch_training=self._uses_batch_training(data),  # type: ignore
+                is_batch_training=is_batch_training,
             )
             num_epochs = 2 * config.num_clusters - 1
 
-        self._init_trainer(overwrite=True, updated_params=dict(max_epochs=num_epochs))
-        self.trainer_.fit(module, self._init_data_loader(data, for_training=True))
+        self._trainer(max_epochs=num_epochs).fit(module, loader)
 
         # Then, in order to find the right convergence tolerance, we need to compute the variance
         # of the data.
         if self.convergence_tolerance != 0:
-            self._init_trainer(overwrite=True, updated_params=dict(max_epochs=2))
             variances = torch.empty(config.num_features)
             module = FeatureVarianceLightningModule(variances)
-            self.trainer_.fit(module, self._init_data_loader(data, for_training=True))
+            self._trainer().fit(module, loader)
 
             tolerance_multiplier = cast(float, variances.mean().item())
             convergence_tolerance = self.convergence_tolerance * tolerance_multiplier
@@ -124,17 +126,17 @@ class KMeans(Estimator[KMeansModel], TransformerMixin[TabularData, torch.Tensor]
             convergence_tolerance = 0
 
         # Then, we can fit the actual model. We need a new trainer for that
-        self._init_trainer(overwrite=True)
+        trainer = self._trainer()
         module = KMeansLightningModule(
             self.model_,
             convergence_tolerance=convergence_tolerance,
         )
-        self.trainer_.fit(module, self._init_data_loader(data, for_training=True))
+        trainer.fit(module, loader)
 
         # Assign convergence properties
         self.num_iter_ = module.current_epoch + 1
-        self.converged_ = module.current_epoch + 1 < cast(int, self.trainer_.max_epochs)
-        self.inertia_ = cast(float, self.trainer_.callback_metrics["inertia"].item())
+        self.converged_ = module.current_epoch + 1 < cast(int, trainer.max_epochs)
+        self.inertia_ = cast(float, trainer.callback_metrics["inertia"].item())
         return self
 
     def predict(self, data: TabularData) -> torch.Tensor:
@@ -155,7 +157,7 @@ class KMeans(Estimator[KMeansModel], TransformerMixin[TabularData, torch.Tensor]
             of predictions in each process is equal, i.e. if the provided data is divisible by the
             number of processes.
         """
-        result = self.trainer_.predict(
+        result = self._trainer().predict(
             KMeansLightningModule(self.model_, predict_target="assignments"),
             self._init_data_loader(data, for_training=False),
         )
@@ -172,7 +174,7 @@ class KMeans(Estimator[KMeansModel], TransformerMixin[TabularData, torch.Tensor]
         Returns:
             The average inertia.
         """
-        result = self.trainer_.test(
+        result = self._trainer().test(
             KMeansLightningModule(self.model_),
             self._init_data_loader(data, for_training=False),
             verbose=False,
@@ -191,7 +193,7 @@ class KMeans(Estimator[KMeansModel], TransformerMixin[TabularData, torch.Tensor]
             A tensor of shape ``[num_datapoints, num_clusters]`` with the distances to the cluster
             centroids.
         """
-        result = self.trainer_.predict(
+        result = self._trainer().predict(
             KMeansLightningModule(self.model_, predict_target="distances"),
             self._init_data_loader(data, for_training=False),
         )

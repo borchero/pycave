@@ -1,35 +1,149 @@
 # pylint: disable=missing-function-docstring
+from typing import Optional
 import pytest
-import torch
+import pytorch_lightning as pl
 from pytest_benchmark.fixture import BenchmarkFixture  # type: ignore
 from sklearn.mixture import GaussianMixture as SklearnGaussianMixture  # type: ignore
+from tests._data.gmm import sample_gmm
 from pycave.bayes import GaussianMixture
-from pycave.bayes.gmm import GaussianMixtureModel, GaussianMixtureModelConfig
+from pycave.bayes.core.types import CovarianceType
 
 
 @pytest.mark.parametrize(
-    "num_datapoints,num_features", zip([10_000, 100_000, 1_000_000], [8, 64, 512])
+    ("num_datapoints", "num_features", "num_components", "covariance_type"),
+    [
+        (10000, 8, 4, "spherical"),
+        (10000, 8, 4, "diag"),
+        (10000, 8, 4, "tied"),
+        (10000, 8, 4, "full"),
+        (100000, 32, 16, "spherical"),
+        (100000, 32, 16, "diag"),
+        (100000, 32, 16, "tied"),
+        (100000, 32, 16, "full"),
+        (1000000, 64, 64, "spherical"),
+        (1000000, 64, 64, "diag"),
+        (1000000, 64, 64, "tied"),
+        (1000000, 64, 64, "full"),
+    ],
 )
-def test_fit(benchmark: BenchmarkFixture, num_datapoints: int, num_features: int):
-    torch.manual_seed(42)
-    data = _generate_sample_data(num_datapoints, num_features)
+def test_sklearn(
+    benchmark: BenchmarkFixture,
+    num_datapoints: int,
+    num_features: int,
+    num_components: int,
+    covariance_type: CovarianceType,
+):
+    pl.seed_everything(0)
+    data = sample_gmm(num_datapoints, num_features, num_components, covariance_type)
 
-    mixture = GaussianMixture(num_components=4, covariance_type="diag")
-    benchmark(mixture.fit, data)
-
-    print(mixture.num_iter_, mixture.converged_, mixture.nll_)
-    assert False
+    estimator = SklearnGaussianMixture(
+        num_components,
+        covariance_type=covariance_type,
+        tol=0,
+        n_init=1,
+        max_iter=100,
+        init_params="random",
+    )
+    benchmark(estimator.fit, data.numpy())
 
 
 @pytest.mark.parametrize(
-    "num_datapoints,num_features", zip([10_000, 100_000, 1_000_000], [8, 64, 512])
+    ("num_datapoints", "num_features", "num_components", "covariance_type"),
+    [
+        (10000, 8, 4, "spherical", None),
+        (10000, 8, 4, "diag", None),
+        (10000, 8, 4, "tied", None),
+        (10000, 8, 4, "full", None),
+        (100000, 32, 16, "spherical", None),
+        (100000, 32, 16, "diag", None),
+        (100000, 32, 16, "tied", None),
+        (100000, 32, 16, "full", None),
+        (1000000, 64, 64, "spherical", None),
+        (1000000, 64, 64, "diag", None),
+        (1000000, 64, 64, "tied", None),
+        (1000000, 64, 64, "full", None),
+        (10000, 8, 4, "spherical", 1000),
+        (10000, 8, 4, "diag", 1000),
+        (10000, 8, 4, "tied", 1000),
+        (10000, 8, 4, "full", 1000),
+        (100000, 32, 16, "spherical", 10000),
+        (100000, 32, 16, "diag", 10000),
+        (100000, 32, 16, "tied", 10000),
+        (100000, 32, 16, "full", 10000),
+        (1000000, 64, 64, "spherical", 100000),
+        (1000000, 64, 64, "diag", 100000),
+        (1000000, 64, 64, "tied", 100000),
+        (1000000, 64, 64, "full", 100000),
+    ],
 )
-def test_sklearn_fit(benchmark: BenchmarkFixture, num_datapoints: int, num_features: int):
-    torch.manual_seed(42)
-    data = _generate_sample_data(num_datapoints, num_features).numpy()
+def test_pycave(
+    benchmark: BenchmarkFixture,
+    num_datapoints: int,
+    num_features: int,
+    num_components: int,
+    covariance_type: CovarianceType,
+    batch_size: Optional[int],
+):
+    pl.seed_everything(0)
+    data = sample_gmm(num_datapoints, num_features, num_components, covariance_type)
 
-    mixture = SklearnGaussianMixture(n_components=4, covariance_type="diag", init_params="random")
-    benchmark(mixture.fit, data)
+    estimator = GaussianMixture(
+        num_components,
+        covariance_type=covariance_type,
+        init_strategy="random",
+        convergence_tolerance=0,
+        batch_size=batch_size,
+        trainer_params=dict(max_epochs=100),
+    )
+    benchmark(estimator.fit, data)
 
-    print(mixture.n_iter_, mixture.converged_, -mixture.lower_bound_)
-    assert False
+
+@pytest.mark.parametrize(
+    ("num_datapoints", "num_features", "num_components", "covariance_type"),
+    [
+        (10000, 8, 4, "spherical", None),
+        (10000, 8, 4, "diag", None),
+        (10000, 8, 4, "tied", None),
+        (10000, 8, 4, "full", None),
+        (100000, 32, 16, "spherical", None),
+        (100000, 32, 16, "diag", None),
+        (100000, 32, 16, "tied", None),
+        (100000, 32, 16, "full", None),
+        (1000000, 64, 64, "spherical", None),
+        (1000000, 64, 64, "diag", None),
+        (1000000, 64, 64, "tied", None),
+        (1000000, 64, 64, "full", None),
+        (10000, 8, 4, "spherical", 1000),
+        (10000, 8, 4, "diag", 1000),
+        (10000, 8, 4, "tied", 1000),
+        (10000, 8, 4, "full", 1000),
+        (100000, 32, 16, "spherical", 10000),
+        (100000, 32, 16, "diag", 10000),
+        (100000, 32, 16, "tied", 10000),
+        (100000, 32, 16, "full", 10000),
+        (1000000, 64, 64, "spherical", 100000),
+        (1000000, 64, 64, "diag", 100000),
+        (1000000, 64, 64, "tied", 100000),
+        (1000000, 64, 64, "full", 100000),
+    ],
+)
+def test_pycave_gpu(
+    benchmark: BenchmarkFixture,
+    num_datapoints: int,
+    num_features: int,
+    num_components: int,
+    covariance_type: CovarianceType,
+    batch_size: Optional[int],
+):
+    pl.seed_everything(0)
+    data = sample_gmm(num_datapoints, num_features, num_components, covariance_type)
+
+    estimator = GaussianMixture(
+        num_components,
+        covariance_type=covariance_type,
+        init_strategy="random",
+        convergence_tolerance=0,
+        batch_size=batch_size,
+        trainer_params=dict(max_epochs=100, gpus=1),
+    )
+    benchmark(estimator.fit, data)

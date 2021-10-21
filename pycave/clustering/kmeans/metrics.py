@@ -77,7 +77,10 @@ class UniformSampler(Metric):
             # The choices are computed from scratch every time, weighting the current choices by
             # the cumulative weight put on them
             weights = torch.cat(
-                [torch.ones(data.size(0), device=data.device), self.choice_weights]
+                [
+                    torch.ones(data.size(0), device=data.device, dtype=data.dtype),
+                    self.choice_weights,
+                ]
             )
             pool = torch.cat([data, self.choices])
             samples = weights.multinomial(self.num_choices)

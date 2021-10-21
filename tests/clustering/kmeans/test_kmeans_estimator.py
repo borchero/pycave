@@ -8,6 +8,14 @@ from tests._data.gmm import sample_gmm
 from pycave.clustering import KMeans
 
 
+def test_fit_automatic_config():
+    estimator = KMeans(4)
+    data = torch.cat([torch.randn(1000, 3) * 0.1 - 100, torch.randn(1000, 3) * 0.1 + 100])
+    estimator.fit(data)
+    assert estimator.model_.config.num_clusters == 4
+    assert estimator.model_.config.num_features == 3
+
+
 def test_fit_num_iter():
     # The k-means++ iterations should find the centroids. Afterwards, it should only take a single
     # epoch until the centroids do not change anymore.

@@ -1,6 +1,6 @@
-from typing import Callable, Generic, Iterator, TypeVar, Union
+from typing import Callable, Generic, Iterator, Optional, TypeVar, Union
 import torch
-from torch.utils.data import Sampler
+from torch.utils.data import BatchSampler, Sampler
 
 T = TypeVar("T")
 
@@ -43,6 +43,13 @@ class TensorDataLoader(Generic[T]):
         self.dataset = dataset
         self.sampler = sampler
         self.collate_fn = collate_fn
+
+    @property
+    def batch_sampler(self) -> Optional[BatchSampler]:
+        """
+        Returns a dummy ``None`` value to have parity with the ``DataLoader`` interface.
+        """
+        return None
 
     def __len__(self) -> int:
         return len(self.sampler)  # type: ignore

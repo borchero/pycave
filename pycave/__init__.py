@@ -21,6 +21,9 @@ warnings.filterwarnings(
 warnings.filterwarnings(
     action="ignore", message=".*`LoggerConnector.gpus_metrics` was deprecated in v1.5.*"
 )
+warnings.filterwarnings(
+    action="ignore", message=".*Lightning couldn't infer the indices fetched for your dataloader.*"
+)
 
 # We also want to define a function which silences info logs
 def set_logging_enabled(enabled: bool) -> None:

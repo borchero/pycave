@@ -68,7 +68,7 @@ class MarkovChainModel(ConfigModule[MarkovChainModelConfig]):
     def forward(self, sequences: PackedSequence) -> torch.Tensor:
         ...
 
-    def forward(self, sequences) -> torch.Tensor:
+    def forward(self, sequences) -> torch.Tensor:  # type: ignore
         """
         Computes the log-probability of observing each of the provided sequences.
 
@@ -144,7 +144,7 @@ class MarkovChainModel(ConfigModule[MarkovChainModelConfig]):
                 normalized to describe a probability distribution).
         """
         A = self.transition_probs.t()
-        v = torch.rand(A.size(0), device=A.device)
+        v = torch.rand(A.size(0), device=A.device, dtype=A.dtype)
 
         for _ in range(max_iterations):
             v_old = v

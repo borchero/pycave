@@ -43,8 +43,7 @@ class Estimator(Generic[M], ABC):
     Base estimator class from which all PyCave estimators should inherit.
     """
 
-    # We have these as private and public property to properly generate documentation.
-    _trainer: pl.Trainer
+    # We have this as private and public property to properly generate documentation.
     _model: M
 
     def __init__(
@@ -63,11 +62,15 @@ class Estimator(Generic[M], ABC):
         self.trainer_params_user = user_params
         self.trainer_params = {
             **dict(
-                enable_checkpointing=False,
+                checkpoint_callback=False,  # PL 1.5: enable_checkpointing
                 logger=False,
                 log_every_n_steps=1,
-                enable_progress_bar=logger.getEffectiveLevel() <= logging.INFO,
-                enable_model_summary=logger.getEffectiveLevel() <= logging.DEBUG,
+                progress_bar_refresh_rate=(  # PL 1.5: enable_progress_bar
+                    None if logger.getEffectiveLevel() <= logging.INFO else 0
+                ),
+                weights_summary=(  # PL 1.5: enable_model_summary
+                    "top" if logger.getEffectiveLevel() <= logging.DEBUG else None
+                ),
             ),
             **(default_params or {}),
             **(user_params or {}),
@@ -80,13 +83,6 @@ class Estimator(Generic[M], ABC):
         The fitted PyTorch module containing all estimated parameters.
         """
         return self._model
-
-    @property
-    def trainer_(self) -> pl.Trainer:
-        """
-        The PyTorch Lightning trainer used for running the model.
-        """
-        return self._trainer
 
     @property
     def _is_fitted(self) -> bool:
@@ -108,7 +104,6 @@ class Estimator(Generic[M], ABC):
             model: The model to load. In case, this estimator is already fitted, this model
                 overrides the existing fitted model.
         """
-        self._init_trainer(overwrite=False)
         self._model = model
 
     def save(self, path: Path) -> None:
@@ -217,7 +212,7 @@ class Estimator(Generic[M], ABC):
         batch_size = self.batch_size or len(data)  # type: ignore
 
         if isinstance(data, torch.Tensor):
-            sampler_kwargs = self.trainer_.distributed_sampler_kwargs
+            sampler_kwargs = self._trainer().distributed_sampler_kwargs
             if sampler_kwargs is None:
                 sampler = TensorBatchSampler(data, batch_size)
             elif for_training:
@@ -248,30 +243,25 @@ class Estimator(Generic[M], ABC):
     # ---------------------------------------------------------------------------------------------
     # HELPER METHODS
 
-    def _init_trainer(
-        self,
-        *,
-        overwrite: bool = True,
-        updated_params: Optional[Dict[str, Any]] = None,
-    ) -> None:
-        if not hasattr(self, "_trainer") or overwrite:
-            self._trainer = pl.Trainer(**{**self.trainer_params, **(updated_params or {})})
-            assert not isinstance(
-                self.trainer_.training_type_plugin,
-                (DDP2Plugin, DataParallelPlugin, DDPSpawnPlugin),
-            ), (
-                "Trainer is using an unsupported training type plugin. "
-                "`ddp2`, `dp` and `ddp_spawn` are currently not supported."
-            )
+    def _trainer(self, **kwargs: Any) -> pl.Trainer:
+        trainer = pl.Trainer(**{**self.trainer_params, **kwargs})
+        assert not isinstance(
+            trainer.training_type_plugin,
+            (DDP2Plugin, DataParallelPlugin, DDPSpawnPlugin),
+        ), (
+            "Trainer is using an unsupported training type plugin. "
+            "`ddp2`, `dp` and `ddp_spawn` are currently not supported."
+        )
+        return trainer
 
     def _uses_batch_training(self, data: Sized) -> bool:
+        trainer = self._trainer()
         return (
             (self.batch_size is not None and len(data) / self.batch_size > 1)
-            or self.trainer_params.get("gpus", 0) > 1
-            or self.trainer_params.get("num_nodes", 1) > 1
-            or self.trainer_params.get("num_processes", 1) > 1
-            or self.trainer_params.get("tpu_cores", 0) > 1
-            or self.trainer_params.get("ipus", 0) > 1
+            or trainer.num_gpus > 1
+            or trainer.num_nodes > 1
+            or trainer.num_processes > 1
+            or (trainer.tpu_cores is not None and trainer.tpu_cores > 1)
         )
 
     # ---------------------------------------------------------------------------------------------

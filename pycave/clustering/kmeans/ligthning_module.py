@@ -96,45 +96,6 @@ class KMeansLightningModule(NonparametricLightningModule):
 # INIT STRATEGIES
 
 
-class FeatureVarianceLightningModule(NonparametricLightningModule):
-    """
-    Lightning module for computing the average variance of a dataset's features. In the first
-    epoch, it computes the features' means, then it can compute their variances.
-    """
-
-    def __init__(self, variances: torch.Tensor):
-        super().__init__()
-
-        self.mean_aggregator = BatchAverager(
-            num_values=variances.size(0),
-            for_variance=False,
-            dist_sync_fn=self.all_gather,
-        )
-        self.variance_aggregator = BatchAverager(
-            num_values=variances.size(0),
-            for_variance=True,
-            dist_sync_fn=self.all_gather,
-        )
-
-        self.means: torch.Tensor
-        self.register_buffer("means", torch.empty(variances.size(0)), persistent=False)
-
-        self.variances: torch.Tensor
-        self.register_buffer("variances", variances, persistent=False)
-
-    def nonparametric_training_step(self, batch: torch.Tensor, batch_idx: int) -> None:
-        if self.current_epoch == 0:
-            self.mean_aggregator.update(batch)
-        else:
-            self.variance_aggregator.update((batch - self.means.unsqueeze(0)).square())
-
-    def nonparametric_training_epoch_end(self) -> None:
-        if self.current_epoch == 0:
-            self.means.copy_(self.mean_aggregator.compute())
-        else:
-            self.variances.copy_(self.variance_aggregator.compute())
-
-
 class KmeansRandomInitLightningModule(NonparametricLightningModule):
     """
     Lightning module for initializing K-Means centroids randomly. Within the first epoch, all
@@ -278,3 +239,46 @@ class KmeansPlusPlusInitLightningModule(NonparametricLightningModule):
     @property
     def _is_current_epoch_sampling(self) -> bool:
         return self.current_epoch % 2 == 1
+
+
+# -------------------------------------------------------------------------------------------------
+# MISC
+
+
+class FeatureVarianceLightningModule(NonparametricLightningModule):
+    """
+    Lightning module for computing the average variance of a dataset's features. In the first
+    epoch, it computes the features' means, then it can compute their variances.
+    """
+
+    def __init__(self, variances: torch.Tensor):
+        super().__init__()
+
+        self.mean_aggregator = BatchAverager(
+            num_values=variances.size(0),
+            for_variance=False,
+            dist_sync_fn=self.all_gather,
+        )
+        self.variance_aggregator = BatchAverager(
+            num_values=variances.size(0),
+            for_variance=True,
+            dist_sync_fn=self.all_gather,
+        )
+
+        self.means: torch.Tensor
+        self.register_buffer("means", torch.empty(variances.size(0)), persistent=False)
+
+        self.variances: torch.Tensor
+        self.register_buffer("variances", variances, persistent=False)
+
+    def nonparametric_training_step(self, batch: torch.Tensor, batch_idx: int) -> None:
+        if self.current_epoch == 0:
+            self.mean_aggregator.update(batch)
+        else:
+            self.variance_aggregator.update((batch - self.means.unsqueeze(0)).square())
+
+    def nonparametric_training_epoch_end(self) -> None:
+        if self.current_epoch == 0:
+            self.means.copy_(self.mean_aggregator.compute())
+        else:
+            self.variances.copy_(self.variance_aggregator.compute())

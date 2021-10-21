@@ -11,16 +11,16 @@ from pycave.clustering.kmeans.types import KMeansInitStrategy
 
 
 @pytest.mark.parametrize(
-    ("num_datapoints", "num_features", "num_centroids", "num_iter", "init_strategy"),
+    ("num_datapoints", "num_features", "num_centroids", "init_strategy"),
     [
-        (10000, 8, 4, 100, "k-means++"),
-        (100000, 32, 16, 100, "k-means++"),
-        (1000000, 64, 64, 100, "k-means++"),
-        (10000000, 128, 128, 100, "k-means++"),
-        (10000, 8, 4, 100, "random"),
-        (100000, 32, 16, 100, "random"),
-        (1000000, 64, 64, 100, "random"),
-        (10000000, 128, 128, 100, "random"),
+        (10000, 8, 4, "k-means++"),
+        (100000, 32, 16, "k-means++"),
+        (1000000, 64, 64, "k-means++"),
+        (10000000, 128, 128, "k-means++"),
+        (10000, 8, 4, "random"),
+        (100000, 32, 16, "random"),
+        (1000000, 64, 64, "random"),
+        (10000000, 128, 128, "random"),
     ],
 )
 def test_sklearn(
@@ -28,7 +28,6 @@ def test_sklearn(
     num_datapoints: int,
     num_features: int,
     num_centroids: int,
-    num_iter: int,
     init_strategy: str,
 ):
     pl.seed_everything(0)
@@ -38,7 +37,7 @@ def test_sklearn(
         num_centroids,
         algorithm="full",
         n_init=1,
-        max_iter=num_iter,
+        max_iter=100,
         tol=0,
         init=init_strategy,
     )
@@ -46,20 +45,20 @@ def test_sklearn(
 
 
 @pytest.mark.parametrize(
-    ("num_datapoints", "batch_size", "num_features", "num_centroids", "num_iter", "init_strategy"),
+    ("num_datapoints", "batch_size", "num_features", "num_centroids", "init_strategy"),
     [
-        (10000, None, 8, 4, 100, "kmeans++"),
-        (10000, 1000, 8, 4, 100, "kmeans++"),
-        (100000, None, 32, 16, 100, "kmeans++"),
-        (100000, 10000, 32, 16, 100, "kmeans++"),
-        (1000000, None, 64, 64, 100, "kmeans++"),
-        (1000000, 100000, 64, 64, 100, "kmeans++"),
-        (10000, None, 8, 4, 100, "random"),
-        (10000, 1000, 8, 4, 100, "random"),
-        (100000, None, 32, 16, 100, "random"),
-        (100000, 10000, 32, 16, 100, "random"),
-        (1000000, None, 64, 64, 100, "random"),
-        (1000000, 100000, 64, 64, 100, "random"),
+        (10000, None, 8, 4, "kmeans++"),
+        (10000, 1000, 8, 4, "kmeans++"),
+        (100000, None, 32, 16, "kmeans++"),
+        (100000, 10000, 32, 16, "kmeans++"),
+        (1000000, None, 64, 64, "kmeans++"),
+        (1000000, 100000, 64, 64, "kmeans++"),
+        (10000, None, 8, 4, "random"),
+        (10000, 1000, 8, 4, "random"),
+        (100000, None, 32, 16, "random"),
+        (100000, 10000, 32, 16, "random"),
+        (1000000, None, 64, 64, "random"),
+        (1000000, 100000, 64, 64, "random"),
     ],
 )
 def test_pycave(
@@ -68,7 +67,6 @@ def test_pycave(
     batch_size: Optional[int],
     num_features: int,
     num_centroids: int,
-    num_iter: int,
     init_strategy: KMeansInitStrategy,
 ):
     pl.seed_everything(0)
@@ -78,29 +76,29 @@ def test_pycave(
         num_centroids,
         init_strategy=init_strategy,
         batch_size=batch_size,
-        trainer_params=dict(max_epochs=num_iter),
+        trainer_params=dict(max_epochs=100),
     )
     benchmark(estimator.fit, data)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is not available")
 @pytest.mark.parametrize(
-    ("num_datapoints", "batch_size", "num_features", "num_centroids", "num_iter", "init_strategy"),
+    ("num_datapoints", "batch_size", "num_features", "num_centroids", "init_strategy"),
     [
-        (10000, None, 8, 4, 100, "kmeans++"),
-        (10000, 1000, 8, 4, 100, "kmeans++"),
-        (100000, None, 32, 16, 100, "kmeans++"),
-        (100000, 10000, 32, 16, 100, "kmeans++"),
-        (1000000, None, 64, 64, 100, "kmeans++"),
-        (1000000, 100000, 64, 64, 100, "kmeans++"),
-        (10000000, 1000000, 128, 128, 100, "kmeans++"),
-        (10000, None, 8, 4, 100, "random"),
-        (10000, 1000, 8, 4, 100, "random"),
-        (100000, None, 32, 16, 100, "random"),
-        (100000, 10000, 32, 16, 100, "random"),
-        (1000000, None, 64, 64, 100, "random"),
-        (1000000, 100000, 64, 64, 100, "random"),
-        (10000000, 1000000, 128, 128, 100, "random"),
+        (10000, None, 8, 4, "kmeans++"),
+        (10000, 1000, 8, 4, "kmeans++"),
+        (100000, None, 32, 16, "kmeans++"),
+        (100000, 10000, 32, 16, "kmeans++"),
+        (1000000, None, 64, 64, "kmeans++"),
+        (1000000, 100000, 64, 64, "kmeans++"),
+        (10000000, 1000000, 128, 128, "kmeans++"),
+        (10000, None, 8, 4, "random"),
+        (10000, 1000, 8, 4, "random"),
+        (100000, None, 32, 16, "random"),
+        (100000, 10000, 32, 16, "random"),
+        (1000000, None, 64, 64, "random"),
+        (1000000, 100000, 64, 64, "random"),
+        (10000000, 1000000, 128, 128, "random"),
     ],
 )
 def test_pycave_gpu(
@@ -109,7 +107,6 @@ def test_pycave_gpu(
     batch_size: Optional[int],
     num_features: int,
     num_centroids: int,
-    num_iter: int,
     init_strategy: KMeansInitStrategy,
 ):
     torch.cuda.init()
@@ -122,6 +119,6 @@ def test_pycave_gpu(
         init_strategy=init_strategy,
         batch_size=batch_size,
         convergence_tolerance=0,
-        trainer_params=dict(gpus=1, max_epochs=num_iter),
+        trainer_params=dict(gpus=1, max_epochs=100),
     )
     benchmark(estimator.fit, data)

@@ -16,7 +16,7 @@ def collate_sequences_same_length(sequences: torch.Tensor) -> PackedSequence:
         A packed sequence containing all sequences.
     """
     num_sequences, sequence_length = sequences.size()
-    batch_sizes = torch.ones(sequence_length) * num_sequences
+    batch_sizes = torch.ones(sequence_length, dtype=torch.long) * num_sequences
     return PackedSequence(sequences.t().flatten(), batch_sizes)
 
 

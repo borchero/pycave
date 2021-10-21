@@ -1,7 +1,7 @@
 # pylint: disable=missing-function-docstring
 import math
+from typing import Optional
 import pytest
-import pytorch_lightning as pl
 import torch
 from sklearn.mixture import GaussianMixture as SklearnGaussianMixture  # type: ignore
 from tests._data.gmm import sample_gmm
@@ -18,36 +18,30 @@ def test_fit_model_config():
     assert estimator.model_.config.num_features == 4
 
 
-@pytest.mark.parametrize("batch_size", [2, 4])
-def test_fit_num_iter(batch_size: int):
-    pl.seed_everything(0)
-
-    # For the following data, K-means will find centroids [0.5, 3.5]. The estimator needs to find
-    # the covariance (first iteration), then a new NLL is obtained (second iteration), and
-    # finally, there is no improvmement in the NLL (third iteration).
+@pytest.mark.parametrize("batch_size", [2, None])
+def test_fit_num_iter(batch_size: Optional[int]):
+    # For the following data, K-means will find centroids [0.5, 3.5]. The estimator first computes
+    # the NLL (first iteration), afterwards there is no improvmement in the NLL (second iteration).
     data = torch.as_tensor([[0.0], [1.0], [3.0], [4.0]])
     estimator = GaussianMixture(
         2,
-        convergence_tolerance=0,
         batch_size=batch_size,
         trainer_params=dict(precision=64),
     )
     estimator.fit(data)
 
-    assert estimator.num_iter_ == 3
+    assert estimator.num_iter_ == 2
 
 
 @pytest.mark.parametrize(
     ("batch_size", "max_epochs", "converged"),
-    [(2, 1, False), (2, 3, True), (4, 1, False), (4, 3, True)],
+    [(2, 1, False), (2, 3, True), (None, 1, False), (None, 3, True)],
 )
-def test_fit_converged(batch_size: int, max_epochs: int, converged: bool):
-    # pl.seed_everything(0)
+def test_fit_converged(batch_size: Optional[int], max_epochs: int, converged: bool):
     data = torch.as_tensor([[0.0], [1.0], [3.0], [4.0]])
 
     estimator = GaussianMixture(
         2,
-        convergence_tolerance=0,
         batch_size=batch_size,
         trainer_params=dict(precision=64, max_epochs=max_epochs),
     )
@@ -55,6 +49,7 @@ def test_fit_converged(batch_size: int, max_epochs: int, converged: bool):
     assert estimator.converged_ == converged
 
 
+@pytest.mark.flaky(max_runs=5, min_passes=1)
 @pytest.mark.parametrize(
     ("num_datapoints", "batch_size", "num_features", "num_components", "covariance_type"),
     [
@@ -75,8 +70,6 @@ def test_fit_nll(
     num_components: int,
     covariance_type: CovarianceType,
 ):
-    # pl.seed_everything(0)
-
     data = sample_gmm(
         num_datapoints=num_datapoints,
         num_features=num_features,
@@ -92,15 +85,9 @@ def test_fit_nll(
         trainer_params=dict(precision=64),
     )
     ours_nll = estimator.fit(data).score(data)
-    print(estimator.model_.means)
-    print(estimator.model_.precisions_cholesky)
 
     # Sklearn
     gmm = SklearnGaussianMixture(num_components, covariance_type=covariance_type)
     sklearn_nll = gmm.fit(data.numpy()).score(data.numpy())
-    print(gmm.means_)
-    print(gmm.precisions_cholesky_)
-
-    print(ours_nll, sklearn_nll)
 
     assert math.isclose(ours_nll, -sklearn_nll, rel_tol=0.01, abs_tol=0.01)
