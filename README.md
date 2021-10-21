@@ -7,7 +7,7 @@ PyCave allows you to run traditional machine learning models on CPU, GPU, and ev
 nodes. All models are implemented in [PyTorch](https://pytorch.org/) and provide an `Estimator` API
 that is fully compatible with [scikit-learn](https://scikit-learn.org/stable/).
 
-Full documentation and benchmark are available on
+Full documentation and benchmarks are available on
 [pycave.borchero.com](https://pycave.borchero.com).
 
 ## Features
