@@ -10,14 +10,14 @@ license = "MIT"
 name = "pycave"
 readme = "README.md"
 repository = "https://github.com/borchero/pycave"
-version = "3.0.0"
+version = "0.0.0"
 
 [tool.poetry.dependencies]
 numpy = "^1.20.3"
 python = "^3.8"
-pytorch-lightning = "^1.4.9"
+pytorch-lightning = "^1.4.9,<1.5.0"
 torch = "^1.9.0"
-torchmetrics = "^0.5.1"
+torchmetrics = "^0.5.1,<0.6.0"
 
 [tool.poetry.dev-dependencies]
 Sphinx = "^4.0.2"

@@ -78,7 +78,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
         Note:
             The number of epochs passed to the initializer only define the number of optimization
             epochs. Prior to that, initialization is run which may perform additional iterations
-            through the data..
+            through the data.
 
         Note:
             For batch training, the number of epochs run (i.e. the number of passes through the

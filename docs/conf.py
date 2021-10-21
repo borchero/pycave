@@ -12,8 +12,6 @@ sys.path.insert(0, os.path.join(filepath, ".."))
 # BASICS
 
 project = "PyCave"
-version = "3.0.0"
-release = "3.0.0"
 copyright = f"{datetime.datetime.now().year}, Oliver Borchert"
 
 # -------------------------------------------------------------------------------------------------

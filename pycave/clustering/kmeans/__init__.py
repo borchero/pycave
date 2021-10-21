@@ -1,5 +1,5 @@
 from .estimator import KMeans
-from .ligthning_module import KMeansLightningModule
+from .lightning_module import KMeansLightningModule
 from .model import KMeansModel, KMeansModelConfig
 
 __all__ = [

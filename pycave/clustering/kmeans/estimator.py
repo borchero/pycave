@@ -1,9 +1,9 @@
 from __future__ import annotations
 from typing import Any, cast, Dict, List, Optional
 import torch
-from pycave.core import Estimator, TransformerMixin
+from pycave.core import Estimator, PredictorMixin, TransformerMixin
 from pycave.data import TabularData
-from .ligthning_module import (
+from .lightning_module import (
     FeatureVarianceLightningModule,
     KMeansLightningModule,
     KmeansPlusPlusInitLightningModule,
@@ -13,7 +13,11 @@ from .model import KMeansModel, KMeansModelConfig
 from .types import KMeansInitStrategy
 
 
-class KMeans(Estimator[KMeansModel], TransformerMixin[TabularData, torch.Tensor]):
+class KMeans(
+    Estimator[KMeansModel],
+    TransformerMixin[TabularData, torch.Tensor],
+    PredictorMixin[TabularData, torch.Tensor],
+):
     """
     Model for clustering data into a predefined number of clusters. More information on K-means
     clustering is available on `Wikipedia <https://en.wikipedia.org/wiki/K-means_clustering>`_.
