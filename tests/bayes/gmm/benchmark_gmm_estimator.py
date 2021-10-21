@@ -2,6 +2,7 @@
 from typing import Optional
 import pytest
 import pytorch_lightning as pl
+import torch
 from pytest_benchmark.fixture import BenchmarkFixture  # type: ignore
 from sklearn.mixture import GaussianMixture as SklearnGaussianMixture  # type: ignore
 from tests._data.gmm import sample_gmm
@@ -22,8 +23,6 @@ from pycave.bayes.core.types import CovarianceType
         (100000, 32, 16, "full"),
         (1000000, 64, 64, "spherical"),
         (1000000, 64, 64, "diag"),
-        (1000000, 64, 64, "tied"),
-        (1000000, 64, 64, "full"),
     ],
 )
 def test_sklearn(
@@ -42,6 +41,7 @@ def test_sklearn(
         tol=0,
         n_init=1,
         max_iter=100,
+        reg_covar=1e-4,
         init_params="random",
     )
     benchmark(estimator.fit, data.numpy())
@@ -60,8 +60,6 @@ def test_sklearn(
         (100000, 32, 16, "full", None),
         (1000000, 64, 64, "spherical", None),
         (1000000, 64, 64, "diag", None),
-        (1000000, 64, 64, "tied", None),
-        (1000000, 64, 64, "full", None),
         (10000, 8, 4, "spherical", 1000),
         (10000, 8, 4, "diag", 1000),
         (10000, 8, 4, "tied", 1000),
@@ -72,8 +70,6 @@ def test_sklearn(
         (100000, 32, 16, "full", 10000),
         (1000000, 64, 64, "spherical", 100000),
         (1000000, 64, 64, "diag", 100000),
-        (1000000, 64, 64, "tied", 100000),
-        (1000000, 64, 64, "full", 100000),
     ],
 )
 def test_pycave(
@@ -92,6 +88,7 @@ def test_pycave(
         covariance_type=covariance_type,
         init_strategy="random",
         convergence_tolerance=0,
+        covariance_regularization=1e-4,
         batch_size=batch_size,
         trainer_params=dict(max_epochs=100),
     )
@@ -135,6 +132,9 @@ def test_pycave_gpu(
     covariance_type: CovarianceType,
     batch_size: Optional[int],
 ):
+    # Initialize GPU
+    torch.empty(1, device="cuda:0")
+
     pl.seed_everything(0)
     data = sample_gmm(num_datapoints, num_features, num_components, covariance_type)
 
@@ -143,6 +143,7 @@ def test_pycave_gpu(
         covariance_type=covariance_type,
         init_strategy="random",
         convergence_tolerance=0,
+        covariance_regularization=1e-4,
         batch_size=batch_size,
         trainer_params=dict(max_epochs=100, gpus=1),
     )

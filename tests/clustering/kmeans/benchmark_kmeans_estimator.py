@@ -109,7 +109,8 @@ def test_pycave_gpu(
     num_centroids: int,
     init_strategy: KMeansInitStrategy,
 ):
-    torch.cuda.init()
+    # Initialize GPU
+    torch.empty(1, device="cuda:0")
 
     pl.seed_everything(0)
     data = sample_gmm(num_datapoints, num_features, num_centroids, "spherical")
