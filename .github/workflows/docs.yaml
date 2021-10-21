@@ -22,9 +22,9 @@ jobs:
       - name: Install Dependencies
         run: poetry install --no-interaction --no-ansi
       - name: Check Spelling
-        run: sphinx-build -W -b spelling docs build
+        run: poetry run sphinx-build -W -b spelling docs build
       - name: Generate HTML
-        run: sphinx-build -W -b html docs build
+        run: poetry run sphinx-build -W -b html docs build
       - name: Store Artifacts
         uses: actions/upload-artifact@v2
         with:
