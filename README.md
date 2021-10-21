@@ -89,7 +89,7 @@ estimator = KMeans(3, trainer_params=dict(gpus=1))
 Similarly, if you want to train on 4 nodes simultaneously where each node has one GPU available,
 you can specify this as follows:
 
-```
+```python
 estimator = KMeans(3, trainer_params=dict(num_nodes=4, gpus=1))
 ```
 
