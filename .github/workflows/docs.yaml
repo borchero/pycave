@@ -7,25 +7,32 @@ on:
 
 jobs:
   build:
+    name: Build
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/borchero/poetry:1.1.6
+      image: python:3.8-buster
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Install Library
+      - name: Install Poetry
+        run: |
+          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | \
+          python - \
+          && echo "PATH=$HOME/.poetry/bin:$PATH" >> $GITHUB_ENV
+      - name: Install Dependencies
         run: poetry install --no-interaction --no-ansi
       - name: Check Spelling
-        run: sphinx-build -W -b spelling docs generated
+        run: sphinx-build -W -b spelling docs build
       - name: Generate HTML
-        run: sphinx-build -W -b html docs generated
+        run: sphinx-build -W -b html docs build
       - name: Store Artifacts
         uses: actions/upload-artifact@v2
         with:
           name: html
-          path: generated/
+          path: build/
 
   deploy:
+    name: Publish
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'release' }}
     needs:
@@ -42,7 +49,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
       - name: Deploy to S3
-        run: aws s3 sync generated s3://pycave.borchero.com --delete --acl public-read
+        run: aws s3 sync build s3://pycave.borchero.com --delete --acl public-read
       - name: Invalidate Cloudfront
         run: |
           aws cloudfront create-invalidation \
