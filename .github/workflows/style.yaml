@@ -2,9 +2,6 @@ name: Check Code Style
 on:
   - push
   - pull_request
-defaults:
-  run:
-    shell: bash
 
 jobs:
   run-black:
@@ -19,11 +16,11 @@ jobs:
         run: |
           curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | \
           python - \
-          && source $HOME/.poetry/env
+          && echo "PATH=$HOME/.poetry/bin:$PATH" >> $GITHUB_ENV
       - name: Install Dependencies
         run: poetry install --no-root --no-interaction --no-ansi
       - name: Run Black
-        run: black --check pycave
+        run: poetry run black --check pycave
 
   run-isort:
     name: Isort
@@ -37,11 +34,11 @@ jobs:
         run: |
           curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | \
           python - \
-          && source $HOME/.poetry/env
+          && echo "PATH=$HOME/.poetry/bin:$PATH" >> $GITHUB_ENV
       - name: Install Dependencies
         run: poetry install --no-root --no-interaction --no-ansi
       - name: Run isort
-        run: isort --check pycave
+        run: poetry run isort --check pycave
 
   run-pylint:
     name: Pylint
@@ -55,21 +52,32 @@ jobs:
         run: |
           curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | \
           python - \
-          && source $HOME/.poetry/env
+          && echo "PATH=$HOME/.poetry/bin:$PATH" >> $GITHUB_ENV
       - name: Install Dependencies
         run: poetry install --no-root --no-interaction --no-ansi
       - name: Run Pylint
-        run: pylint pycave
+        run: poetry run pylint pycave
 
   run-pyright:
     name: Pyright
     runs-on: ubuntu-latest
     container:
-      image: node:16.3.0
+      image: python:3.8-buster
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Install Node
+        run: |
+          curl -sL https://deb.nodesource.com/setup_16.x | bash \
+          && apt-get install -y nodejs
+      - name: Install Poetry
+        run: |
+          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | \
+          python - \
+          && echo "PATH=$HOME/.poetry/bin:$PATH" >> $GITHUB_ENV
       - name: Install Dependencies
+        run: poetry install --no-root --no-interaction --no-ansi
+      - name: Install Npm Dependencies
         run: npm ci
       - name: Run PyRight
-        run: npm run lint
+        run: poetry run npm run lint
