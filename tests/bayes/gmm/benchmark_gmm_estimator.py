@@ -38,6 +38,7 @@ def test_sklearn(
         tol=0,
         n_init=1,
         max_iter=100,
+        reg_covar=1e-3,
         init_params="random",
         means_init=means.numpy(),
     )
@@ -79,6 +80,7 @@ def test_pycave(
         covariance_type=covariance_type,
         init_means=means,
         convergence_tolerance=0,
+        covariance_regularization=1e-3,
         batch_size=batch_size,
         trainer_params=dict(max_epochs=100),
     )
@@ -124,6 +126,7 @@ def test_pycave_gpu(
         covariance_type=covariance_type,
         init_means=means,
         convergence_tolerance=0,
+        covariance_regularization=1e-3,
         batch_size=batch_size,
         trainer_params=dict(max_epochs=100, gpus=1),
     )
