@@ -31,7 +31,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: html
-          path: build/
+          path: build
 
   deploy:
     name: Publish
@@ -44,6 +44,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: html
+          path: build
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -55,6 +56,6 @@ jobs:
       - name: Invalidate Cloudfront
         run: |
           aws cloudfront create-invalidation \
-            --distribution-id ${AWS_CLOUDFRONT_DISTRIBUTION} --paths *
+            --distribution-id ${AWS_CLOUDFRONT_DISTRIBUTION} --paths "/*"
         env:
           AWS_CLOUDFRONT_DISTRIBUTION: ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION }}
