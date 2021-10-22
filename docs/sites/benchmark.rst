@@ -111,6 +111,14 @@ Results
 Summary
 ^^^^^^^
 
+PyCave's implementation of the Gaussian mixture model is markedly more efficient than the one found
+in scikit-learn. Even on the CPU, PyCave outperforms scikit-learn significantly at a 100k
+datapoints already. When moving to the GPU, however, PyCave unfolds its full potential and yields
+speed ups close to 100x. For larger datasets, mini-batch training is the only alternative. PyCave
+fully supports that while the training is approximately twice as large as when training using the
+full data. The reason for this is that the M-step of the EM algorithm needs to be split across
+epochs, which, in turn, requires to replay the E-step.
+
 
 K-Means
 -------
