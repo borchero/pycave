@@ -108,7 +108,7 @@ class CovarianceAggregator(Metric):
             # This is taken from https://github.com/scikit-learn/scikit-learn/blob/
             # 844b4be24d20fc42cc13b957374c718956a0db39/sklearn/mixture/_gaussian_mixture.py#L183
             x_sq = data.T.matmul(data)
-            mean_sq = (data_component_weights.unsqueeze(-1) * means).T.matmul(means)
+            mean_sq = (data_component_weights * means.T).matmul(means)
             self.covariance_sum.add_(x_sq - mean_sq)
         else:  # covariance_type == "full":
             # We iterate over each component since this is typically faster...
@@ -136,5 +136,5 @@ class CovarianceAggregator(Metric):
             .unsqueeze(0)
             .expand(self.num_components, -1, -1)
         )
-        result[diag_mask].add_(self.reg)
+        result[diag_mask] += self.reg
         return result

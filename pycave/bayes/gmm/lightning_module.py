@@ -175,8 +175,7 @@ class GaussianMixtureLightningModule(NonparametricLightningModule):
 
 class GaussianMixtureKmeansInitLightningModule(NonparametricLightningModule):
     """
-    Lightning module for initializing a Gaussian mixture from centroids found via K-Means. Does
-    not update the means but estimates priors and covariances in a single epoch.
+    Lightning module for initializing a Gaussian mixture from centroids found via K-Means.
     """
 
     def __init__(self, model: GaussianMixtureModel, covariance_regularization: float):
@@ -208,14 +207,7 @@ class GaussianMixtureKmeansInitLightningModule(NonparametricLightningModule):
 
     def nonparametric_training_step(self, batch: torch.Tensor, batch_idx: int) -> None:
         # Just like for k-means, responsibilities are one-hot assignments to the clusters
-        distances = torch.cdist(batch, self.model.means)
-        assignments = distances.min(1).indices
-        onehot = torch.eye(
-            self.model.config.num_components,
-            device=batch.device,
-            dtype=batch.dtype,
-        )
-        responsibilities = onehot[assignments]
+        responsibilities = _one_hot_responsibilities(batch, self.model.means)
 
         # Then, we can update the aggregators
         self.prior_aggregator.update(responsibilities)
@@ -233,8 +225,9 @@ class GaussianMixtureKmeansInitLightningModule(NonparametricLightningModule):
 
 class GaussianMixtureRandomInitLightningModule(NonparametricLightningModule):
     """
-    Lightning module for initializing a Gaussian mixture randomly. For batch training, this
-    requires two epochs, otherwise, it requires a single epoch.
+    Lightning module for initializing a Gaussian mixture randomly or using the assignments for
+    arbitrary means that were not found via K-means. For batch training, this requires two epochs,
+    otherwise, it requires a single epoch.
     """
 
     def __init__(
@@ -242,6 +235,7 @@ class GaussianMixtureRandomInitLightningModule(NonparametricLightningModule):
         model: GaussianMixtureModel,
         covariance_regularization: float,
         is_batch_training: bool,
+        use_model_means: bool,
     ):
         """
         Args:
@@ -250,11 +244,14 @@ class GaussianMixtureRandomInitLightningModule(NonparametricLightningModule):
                 covariance matrix to ensure that it is positive semi-definite.
             is_batch_training: Whether training is performed on mini-batches instead of the entire
                 data at once.
+            use_model_means: Whether the model's means ought to be used for one-hot component
+                assignments.
         """
         super().__init__()
 
         self.model = model
         self.is_batch_training = is_batch_training
+        self.use_model_means = use_model_means
 
         self.prior_aggregator = PriorAggregator(
             num_components=self.model.config.num_components,
@@ -273,14 +270,30 @@ class GaussianMixtureRandomInitLightningModule(NonparametricLightningModule):
             dist_sync_fn=self.all_gather,
         )
 
+        # For batch training, we store a model copy such that we can "replay" responsibilities
+        if self.is_batch_training and self.use_model_means:
+            self.model_copy = GaussianMixtureModel(self.model.config)
+            self.model_copy.load_state_dict(self.model.state_dict())
+
+    def on_train_epoch_start(self) -> None:
+        self.prior_aggregator.reset()
+        self.mean_aggregator.reset()
+        self.covar_aggregator.reset()
+
     def nonparametric_training_step(self, batch: torch.Tensor, batch_idx: int) -> None:
-        responsibilities = torch.rand(
-            batch.size(0),
-            self.model.config.num_components,
-            device=batch.device,
-            dtype=batch.dtype,
-        )
-        responsibilities = responsibilities / responsibilities.sum(1, keepdim=True)
+        if self.use_model_means:
+            if self.current_epoch == 0:
+                responsibilities = _one_hot_responsibilities(batch, self.model.means)
+            else:
+                responsibilities = _one_hot_responsibilities(batch, self.model_copy.means)
+        else:
+            responsibilities = torch.rand(
+                batch.size(0),
+                self.model.config.num_components,
+                device=batch.device,
+                dtype=batch.dtype,
+            )
+            responsibilities = responsibilities / responsibilities.sum(1, keepdim=True)
 
         if self.current_epoch == 0:
             self.prior_aggregator.update(responsibilities)
@@ -293,6 +306,9 @@ class GaussianMixtureRandomInitLightningModule(NonparametricLightningModule):
             self.covar_aggregator.update(batch, responsibilities, self.model.means)
 
     def nonparametric_training_epoch_end(self) -> None:
+        if self.current_epoch == 0 and self.is_batch_training:
+            self.model_copy.load_state_dict(self.model.state_dict())
+
         if self.current_epoch == 0:
             priors = self.prior_aggregator.compute()
             self.model.component_probs.copy_(priors)
@@ -305,3 +321,14 @@ class GaussianMixtureRandomInitLightningModule(NonparametricLightningModule):
             self.model.precisions_cholesky.copy_(
                 cholesky_precision(covars, self.model.config.covariance_type)
             )
+
+
+def _one_hot_responsibilities(data: torch.Tensor, centroids: torch.Tensor) -> torch.Tensor:
+    distances = torch.cdist(data, centroids)
+    assignments = distances.min(1).indices
+    onehot = torch.eye(
+        centroids.size(0),
+        device=data.device,
+        dtype=data.dtype,
+    )
+    return onehot[assignments]

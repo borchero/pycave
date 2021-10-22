@@ -155,7 +155,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
 
         # Run initialization
         logger.info("Running initialization...")
-        if self.init_strategy in ("kmeans", "kmeans++") or self.init_means is not None:
+        if self.init_strategy in ("kmeans", "kmeans++") and self.init_means is None:
             module = GaussianMixtureKmeansInitLightningModule(
                 self.model_,
                 covariance_regularization=self.covariance_regularization,
@@ -166,6 +166,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
                 self.model_,
                 covariance_regularization=self.covariance_regularization,
                 is_batch_training=is_batch_training,
+                use_model_means=self.init_means is not None,
             )
             self._trainer(max_epochs=1 + int(is_batch_training)).fit(module, loader)
 
