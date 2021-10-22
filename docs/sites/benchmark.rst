@@ -36,23 +36,23 @@ Results
       - PyCave GPU (full)
       - PyCave GPU (batches)
     * - ``[10k, 8] -> 4``
-      - 352 ms
-      - 466 ms
-      - 3.7 s
-      - 787 ms
-      - 9.8 s
+      - **352 ms**
+      - 649 ms
+      - 3.9 s
+      - 358 ms
+      - 3.6 s
     * - ``[100k, 32] -> 16``
       - 18.4 s
-      - 4.1 s
-      - 9.3 s
-      - 1.6 s
-      - 14.2 s
+      - 4.3 s
+      - 10.0 s
+      - **527 ms**
+      - 3.9 s
     * - ``[1M, 64] -> 64``
       - 730 s
-      - 190 s
-      - 272 s
-      - 14.7 s
-      - 31.6 s
+      - 196 s
+      - 284 s
+      - **7.7 s**
+      - 15.3 s
 
 .. list-table:: Training Duration for Tied Covariance (``[num_datapoints, num_features] -> num_components``)
     :header-rows: 1
@@ -67,22 +67,22 @@ Results
       - PyCave GPU (batches)
     * - ``[10k, 8] -> 4``
       - 699 ms
-      - <tbd>
-      - <tbd>
-      - <tbd>
-      - <tbd>
+      - 570 ms
+      - 3.6 s
+      - **356 ms**
+      - 3.3 s
     * - ``[100k, 32] -> 16``
       - 72.2 s
-      - <tbd>
-      - <tbd>
-      - <tbd>
-      - <tbd>
+      - 12.1 s
+      - 16.1 s
+      - **919 ms**
+      - 3.8 s
     * - ``[1M, 64] -> 64``
       - --
       - --
       - --
-      - <tbd>
       - --
+      - **63.4 s**
 
 .. list-table:: Training Duration for Full Covariance (``[num_datapoints, num_features] -> num_components``)
     :header-rows: 1
@@ -97,16 +97,16 @@ Results
       - PyCave GPU (batches)
     * - ``[10k, 8] -> 4``
       - 1.1 s
-      - 574 ms
-      - 3.9 s
-      - 2.1 s
-      - 6.6 s
+      - 679 ms
+      - 4.1 s
+      - **648 ms**
+      - 4.4 s
     * - ``[100k, 32] -> 16``
       - 110 s
-      - 12.6 s
-      - 20.1 s
-      - 6.8 s
-      - 19.1 s
+      - 13.5 s
+      - 21.2 s
+      - **2.4 s**
+      - 7.8 s
 
 Summary
 ^^^^^^^
@@ -114,7 +114,7 @@ Summary
 PyCave's implementation of the Gaussian mixture model is markedly more efficient than the one found
 in scikit-learn. Even on the CPU, PyCave outperforms scikit-learn significantly at a 100k
 datapoints already. When moving to the GPU, however, PyCave unfolds its full potential and yields
-speed ups at around 50x. For larger datasets, mini-batch training is the only alternative. PyCave
+speed ups at around 100x. For larger datasets, mini-batch training is the only alternative. PyCave
 fully supports that while the training is approximately twice as large as when training using the
 full data. The reason for this is that the M-step of the EM algorithm needs to be split across
 epochs, which, in turn, requires to replay the E-step.
