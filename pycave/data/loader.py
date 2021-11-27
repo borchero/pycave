@@ -43,7 +43,7 @@ class TensorDataLoader(Generic[T]):
             tensors: One or more tensors of shape ``[num_datapoints, *]``. For each index, this
                 dataset returns all tensors' values at that index as tuples.
             batch_size: The batch size to use. Ignored if ``sampler`` is provided. If set to
-                ``None``, each batch retuns the full data.
+                ``None``, each batch returns the full data.
             sampler: A batch sampler which provides either slices or batches of indices to gather
                 from the dataset. By default, it uses :class:`pycave.data.TensorBatchSampler`.
             collate_fn: A collation function which transforms a batch of items into another type.
