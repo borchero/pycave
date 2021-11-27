@@ -1,11 +1,14 @@
-from typing import Callable, Generic, Iterator, Optional, TypeVar, Union
+from typing import Callable, Generic, Iterator, Optional, Tuple, TypeVar, Union
 import torch
 from torch.utils.data import BatchSampler, Sampler
+from .sampler import TensorBatchSampler
 
 T = TypeVar("T")
 
 
-def _default_collate_fn(x: torch.Tensor) -> torch.Tensor:
+def _default_collate_fn(
+    x: Union[torch.Tensor, Tuple[torch.Tensor, ...]]
+) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
     return x
 
 
@@ -28,26 +31,36 @@ class TensorDataLoader(Generic[T]):
 
     def __init__(
         self,
-        dataset: torch.Tensor,
-        sampler: Sampler[Union[slice, torch.Tensor]],
-        collate_fn: Callable[[torch.Tensor], T] = _default_collate_fn,
+        *tensors: torch.Tensor,
+        batch_size: Optional[int] = None,
+        sampler: Optional[Sampler[Union[slice, torch.Tensor]]] = None,
+        collate_fn: Callable[
+            [Union[torch.Tensor, Tuple[torch.Tensor, ...]]], T
+        ] = _default_collate_fn,
     ):
         """
         Args:
-            dataset: A tensor of shape ``[num_datapoints, *]`` representing all the available data.
+            tensors: One or more tensors of shape ``[num_datapoints, *]``. For each index, this
+                dataset returns all tensors' values at that index as tuples.
+            batch_size: The batch size to use. Ignored if ``sampler`` is provided. If set to
+                ``None``, each batch retuns the full data.
             sampler: A batch sampler which provides either slices or batches of indices to gather
-                from the dataset.
+                from the dataset. By default, it uses :class:`pycave.data.TensorBatchSampler`.
             collate_fn: A collation function which transforms a batch of items into another type.
                 By default, it does not apply any transforms to the batch.
         """
-        self.dataset = dataset
-        self.sampler = sampler
+        assert len(tensors) > 0, "At least one tensor must be provided."
+
+        self.tensors = tensors
+        self.sampler = sampler or TensorBatchSampler(
+            self.tensors[0], batch_size or self.tensors[0].size(0)
+        )
         self.collate_fn = collate_fn
 
     @property
     def batch_sampler(self) -> Optional[BatchSampler]:
         """
-        Returns a dummy ``None`` value to have parity with the ``DataLoader`` interface.
+        Returns a dummy ``None`` value for feature parity with the ``DataLoader`` interface.
         """
         return None
 
@@ -56,4 +69,7 @@ class TensorDataLoader(Generic[T]):
 
     def __iter__(self) -> Iterator[T]:
         for indices in self.sampler:
-            yield self.collate_fn(self.dataset[indices])
+            item = tuple(tensor[indices] for tensor in self.tensors)
+            if len(item) == 1:
+                item = item[0]
+            yield self.collate_fn(item)
