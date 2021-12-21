@@ -1,17 +1,20 @@
 from __future__ import annotations
 import logging
-from typing import Any, Callable, cast, Dict, List, Optional
+from typing import Any, cast, Dict, List, Optional
 import numpy as np
 import torch
-from pycave.core.estimator import Estimator
-from pycave.data import collate_sequences, collate_sequences_same_length, SequenceData
+from lightkit import BaseEstimator
+from lightkit.data import DataLoader, dataset_from_tensors
+from torch.nn.utils.rnn import PackedSequence
+from torch.utils.data import Dataset
 from .lightning_module import MarkovChainLightningModule
 from .model import MarkovChainModel, MarkovChainModelConfig
+from .types import collate_sequences, collate_sequences_same_length, SequenceData
 
 logger = logging.getLogger(__name__)
 
 
-class MarkovChain(Estimator[MarkovChainModel]):
+class MarkovChain(BaseEstimator[MarkovChainModel]):
     """
     Probabilistic model for observed state transitions. The Markov chain is similar to the hidden
     Markov model, only that the hidden states are known. More information on the Markov chain is
@@ -33,7 +36,6 @@ class MarkovChain(Estimator[MarkovChainModel]):
         *,
         symmetric: bool = False,
         batch_size: Optional[int] = None,
-        num_workers: int = 0,
         trainer_params: Optional[Dict[str, Any]] = None,
     ):
         """
@@ -63,7 +65,6 @@ class MarkovChain(Estimator[MarkovChainModel]):
         self.num_states = num_states
         self.symmetric = symmetric
         self.batch_size = batch_size
-        self.num_workers = num_workers
 
     def fit(self, sequences: SequenceData) -> MarkovChain:
         """
@@ -81,9 +82,9 @@ class MarkovChain(Estimator[MarkovChainModel]):
         self._model = MarkovChainModel(config)
 
         logger.info("Fitting Markov chain...")
-        self._trainer().fit(
+        self.trainer().fit(
             MarkovChainLightningModule(self.model_, self.symmetric),
-            self._init_data_loader(sequences, for_training=True),
+            self._init_data_loader(sequences),
         )
         return self
 
@@ -118,9 +119,9 @@ class MarkovChain(Estimator[MarkovChainModel]):
         Note:
             See :meth:`score_samples` to obtain the NLL values for individual sequences.
         """
-        result = self._trainer().test(
+        result = self.trainer().test(
             MarkovChainLightningModule(self.model_),
-            self._init_data_loader(sequences, for_training=False),
+            self._init_data_loader(sequences),
             verbose=False,
         )
         return result[0]["nll"]
@@ -140,17 +141,26 @@ class MarkovChain(Estimator[MarkovChainModel]):
             a subset of the predictions. If you want to aggregate predictions, make sure to gather
             the values returned from this method.
         """
-        result = self._trainer().predict(
+        result = self.trainer().predict(
             MarkovChainLightningModule(self.model_),
-            self._init_data_loader(sequences, for_training=False),
+            self._init_data_loader(sequences),
             return_predictions=True,
         )
         return torch.stack(cast(List[torch.Tensor], result))
 
-    def _data_collate_fn(self, for_tensor: bool) -> Optional[Callable[[Any], Any]]:
-        if for_tensor:
-            return collate_sequences_same_length
-        return collate_sequences
+    def _init_data_loader(self, sequences: SequenceData) -> DataLoader[PackedSequence]:
+        if isinstance(sequences, Dataset):
+            return DataLoader(
+                sequences,
+                batch_size=self.batch_size or len(sequences),  # type: ignore
+                collate_fn=collate_sequences,  # type: ignore
+            )
+
+        return DataLoader(  # type: ignore
+            dataset_from_tensors(sequences),
+            batch_size=self.batch_size or len(sequences),
+            collate_fn=collate_sequences_same_length,
+        )
 
 
 def _get_num_states(data: SequenceData) -> int:

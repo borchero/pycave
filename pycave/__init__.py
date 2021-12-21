@@ -1,6 +1,6 @@
 import logging
 import warnings
-from .core import NotFittedError
+import lightkit
 
 # This is taken from PyTorch Lightning and ensures that logging for this package is enabled
 _root_logger = logging.getLogger()
@@ -21,23 +21,18 @@ warnings.filterwarnings(
 warnings.filterwarnings(
     action="ignore", message=".*`LoggerConnector.gpus_metrics` was deprecated in v1.5.*"
 )
-warnings.filterwarnings(
-    action="ignore", message=".*Lightning couldn't infer the indices fetched for your dataloader.*"
-)
 
 # We also want to define a function which silences info logs
-def set_logging_enabled(enabled: bool) -> None:
+def set_logging_level(level: int) -> None:
     """
     Enables or disables logging for the entire module. By default, logging is enabled.
 
     Args:
         enabled: Whether to enable logging.
     """
-    _logger.setLevel(logging.INFO if enabled else logging.WARNING)
+    _logger.setLevel(level)
+    lightkit.set_logging_level(level)
 
 
 # Export
-__all__ = [
-    "NotFittedError",
-    "set_logging_enabled",
-]
+__all__ = ["set_logging_level"]

@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from typing import Tuple
 import numpy as np
 import torch
+from lightkit.nn import Configurable
 from torch import jit, nn
 from pycave.bayes.core import covariance_shape, CovarianceType
 from pycave.bayes.core._jit import jit_log_normal, jit_sample_normal
-from pycave.core import ConfigModule
 
 
 @dataclass
@@ -25,7 +25,7 @@ class GaussianMixtureModelConfig:
     covariance_type: CovarianceType
 
 
-class GaussianMixtureModel(ConfigModule[GaussianMixtureModelConfig]):
+class GaussianMixtureModel(Configurable[GaussianMixtureModelConfig], nn.Module):
     """
     PyTorch module for a Gaussian mixture model. Covariances are represented via their Cholesky
     decomposition for computational efficiency. The model does not have trainable parameters.

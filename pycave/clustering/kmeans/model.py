@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Tuple
 import torch
+from lightkit.nn import Configurable
 from torch import jit, nn
-from pycave.core import ConfigModule
 
 
 @dataclass
@@ -20,7 +20,7 @@ class KMeansModelConfig:
     num_features: int
 
 
-class KMeansModel(ConfigModule[KMeansModelConfig]):
+class KMeansModel(Configurable[KMeansModelConfig], nn.Module):
     """
     PyTorch module for the K-Means model. The centroids managed by this model are non-trainable
     parameters.

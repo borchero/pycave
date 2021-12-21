@@ -2,7 +2,7 @@ import torch
 from torch.nn.utils.rnn import PackedSequence
 from torchmetrics import AverageMeter
 from pycave.bayes.markov_chain.metrics import StateCountAggregator
-from pycave.core import NonparametricLightningModule
+from pycave.utils import NonparametricLightningModule
 from .model import MarkovChainModel
 
 

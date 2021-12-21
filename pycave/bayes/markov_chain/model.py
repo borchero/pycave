@@ -3,9 +3,9 @@ from dataclasses import dataclass
 from typing import overload
 import torch
 import torch._jit_internal as _jit
+from lightkit.nn import Configurable
 from torch import jit, nn
 from torch.nn.utils.rnn import PackedSequence
-from pycave.core import ConfigModule
 
 
 @dataclass
@@ -21,7 +21,7 @@ class MarkovChainModelConfig:
     num_states: int
 
 
-class MarkovChainModel(ConfigModule[MarkovChainModelConfig]):
+class MarkovChainModel(Configurable[MarkovChainModelConfig], nn.Module):
     """
     PyTorch module for a Markov chain. The initial state probabilities as well as the transition
     probabilities are non-trainable parameters.

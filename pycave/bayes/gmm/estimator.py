@@ -2,10 +2,11 @@ from __future__ import annotations
 import logging
 from typing import Any, cast, Dict, List, Optional, Tuple
 import torch
+from lightkit import BaseEstimator
+from lightkit.data import collate_tensor, DataLoader, dataset_from_tensors, TensorLike
+from lightkit.estimator import PredictorMixin
 from pycave.bayes.core import CovarianceType
 from pycave.clustering import KMeans
-from pycave.core import Estimator, PredictorMixin
-from pycave.data import TabularData
 from .lightning_module import (
     GaussianMixtureKmeansInitLightningModule,
     GaussianMixtureLightningModule,
@@ -17,7 +18,10 @@ from .types import GaussianMixtureInitStrategy
 logger = logging.getLogger(__name__)
 
 
-class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularData, torch.Tensor]):
+class GaussianMixture(
+    BaseEstimator[GaussianMixtureModel],
+    PredictorMixin[TensorLike, torch.Tensor],
+):
     """
     Probabilistic model assuming that data is generated from a mixture of Gaussians. The mixture is
     assumed to be composed of a fixed number of components with individual means and covariances.
@@ -51,7 +55,6 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
         convergence_tolerance: float = 1e-3,
         covariance_regularization: float = 1e-6,
         batch_size: Optional[int] = None,
-        num_workers: int = 0,
         trainer_params: Optional[Dict[str, Any]] = None,
     ):
         """
@@ -93,11 +96,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
             many EM iterations have been run.
         """
         super().__init__(
-            batch_size=batch_size,
-            num_workers=num_workers,
-            default_params=dict(
-                max_epochs=100,
-            ),
+            default_params=dict(max_epochs=100),
             user_params=trainer_params,
         )
 
@@ -109,9 +108,8 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
         self.covariance_regularization = covariance_regularization
 
         self.batch_size = batch_size
-        self.num_workers = num_workers
 
-    def fit(self, data: TabularData) -> GaussianMixture:
+    def fit(self, data: TensorLike) -> GaussianMixture:
         """
         Fits the Gaussian mixture on the provided data, estimating component priors, means and
         covariances. Parameters are estimated using the EM algorithm.
@@ -133,8 +131,12 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
         self._model = GaussianMixtureModel(config)
 
         # Setup the data loading
-        is_batch_training = self._uses_batch_training(data)  # type: ignore
-        loader = self._init_data_loader(data, for_training=True)
+        loader = DataLoader(
+            dataset_from_tensors(data),
+            batch_size=self.batch_size or len(data),
+            collate_fn=collate_tensor,
+        )
+        is_batch_training = self._num_batches_per_epoch(loader) == 1
 
         # Run k-means if required or copy means
         if self.init_means is not None:
@@ -148,7 +150,6 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
             estimator = KMeans(
                 self.num_components,
                 batch_size=self.batch_size,
-                num_workers=self.num_workers,
                 trainer_params=params,
             ).fit(data)
             self.model_.means.copy_(estimator.model_.centroids)
@@ -160,7 +161,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
                 self.model_,
                 covariance_regularization=self.covariance_regularization,
             )
-            self._trainer(max_epochs=1).fit(module, loader)
+            self.trainer(max_epochs=1).fit(module, loader)
         else:
             module = GaussianMixtureRandomInitLightningModule(
                 self.model_,
@@ -168,7 +169,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
                 is_batch_training=is_batch_training,
                 use_model_means=self.init_means is not None,
             )
-            self._trainer(max_epochs=1 + int(is_batch_training)).fit(module, loader)
+            self.trainer(max_epochs=1 + int(is_batch_training)).fit(module, loader)
 
         # Fit model
         logger.info("Fitting Gaussian mixture...")
@@ -178,7 +179,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
             covariance_regularization=self.covariance_regularization,
             is_batch_training=is_batch_training,
         )
-        trainer = self._trainer(
+        trainer = self.trainer(
             max_epochs=cast(int, self.trainer_params["max_epochs"]) * (1 + int(is_batch_training))
         )
         trainer.fit(module, loader)
@@ -207,7 +208,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
         """
         return self.model_.sample(num_datapoints)
 
-    def score(self, data: TabularData) -> float:
+    def score(self, data: TensorLike) -> float:
         """
         Computes the average negative log-likelihood (NLL) of the provided datapoints.
 
@@ -220,14 +221,17 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
         Note:
             See :meth:`score_samples` to obtain NLL values for individual datapoints.
         """
-        result = self._trainer().test(
-            GaussianMixtureLightningModule(self.model_),
-            self._init_data_loader(data, for_training=False),
-            verbose=False,
+        loader = DataLoader(
+            dataset_from_tensors(data),
+            batch_size=self.batch_size or len(data),
+            collate_fn=collate_tensor,
+        )
+        result = self.trainer().test(
+            GaussianMixtureLightningModule(self.model_), loader, verbose=False
         )
         return result[0]["nll"]
 
-    def score_samples(self, data: TabularData) -> torch.Tensor:
+    def score_samples(self, data: TensorLike) -> torch.Tensor:
         """
         Computes the negative log-likelihood (NLL) of each of the provided datapoints.
 
@@ -242,13 +246,15 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
             a subset of the predictions. If you want to aggregate predictions, make sure to gather
             the values returned from this method.
         """
-        result = self._trainer().predict(
-            GaussianMixtureLightningModule(self.model_),
-            self._init_data_loader(data, for_training=False),
+        loader = DataLoader(
+            dataset_from_tensors(data),
+            batch_size=self.batch_size or len(data),
+            collate_fn=collate_tensor,
         )
+        result = self.trainer().predict(GaussianMixtureLightningModule(self.model_), loader)
         return torch.stack([x[1] for x in cast(List[Tuple[torch.Tensor, torch.Tensor]], result)])
 
-    def predict(self, data: TabularData) -> torch.Tensor:
+    def predict(self, data: TensorLike) -> torch.Tensor:
         """
         Computes the most likely components for each of the provided datapoints.
 
@@ -269,7 +275,7 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
         """
         return self.predict_proba(data).argmax(-1)
 
-    def predict_proba(self, data: TabularData) -> torch.Tensor:
+    def predict_proba(self, data: TensorLike) -> torch.Tensor:
         """
         Computes a distribution over the components for each of the provided datapoints.
 
@@ -287,8 +293,10 @@ class GaussianMixture(Estimator[GaussianMixtureModel], PredictorMixin[TabularDat
             a subset of the predictions. If you want to aggregate predictions, make sure to gather
             the values returned from this method.
         """
-        result = self._trainer().predict(
-            GaussianMixtureLightningModule(self.model_),
-            self._init_data_loader(data, for_training=False),
+        loader = DataLoader(
+            dataset_from_tensors(data),
+            batch_size=self.batch_size or len(data),
+            collate_fn=collate_tensor,
         )
+        result = self.trainer().predict(GaussianMixtureLightningModule(self.model_), loader)
         return torch.cat([x[0] for x in cast(List[Tuple[torch.Tensor, torch.Tensor]], result)])

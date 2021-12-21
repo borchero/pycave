@@ -5,7 +5,7 @@ import torch
 from pytorch_lightning.callbacks import EarlyStopping
 from torchmetrics import AverageMeter
 from pycave.bayes.core import cholesky_precision
-from pycave.core import NonparametricLightningModule
+from pycave.utils import NonparametricLightningModule
 from .metrics import CovarianceAggregator, MeanAggregator, PriorAggregator
 from .model import GaussianMixtureModel
 

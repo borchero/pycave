@@ -58,49 +58,8 @@ K-Means
     ~kmeans.KMeansModelConfig
 
 
-Utilities
----------
-
-Base Classes
-^^^^^^^^^^^^
-
-.. currentmodule:: pycave.core
-.. autosummary::
-    :toctree: generated/core
-    :nosignatures:
-    :caption: Base Classes
-    :template: classes/no_inherited_methods.rst
-
-    Estimator
-
-    :template: classes/mixin.rst
-
-    PredictorMixin
-    TransformerMixin
-
-    :template: classes/only_methods.rst
-
-    ConfigModule
-
-
-Data Loading
-^^^^^^^^^^^^
-
-.. currentmodule:: pycave.data
-.. autosummary::
-    :toctree: generated/data
-    :nosignatures:
-    :caption: Data Loading
-    :template: classes/no_members.rst
-
-    TensorDataLoader
-    TensorBatchSampler
-    DistributedTensorBatchSampler
-    UnrepeatedDistributedTensorBatchSampler
-
-
-Types
-^^^^^
+Utility Types
+-------------
 
 .. currentmodule:: pycave
 .. autosummary::
@@ -109,8 +68,7 @@ Types
     :caption: Types
     :template: classes/type_alias.rst
 
-    ~data.TabularData
-    ~data.SequenceData
+    ~bayes.markov_chain.types.SequenceData
     ~bayes.core.CovarianceType
     ~bayes.gmm.types.GaussianMixtureInitStrategy
     ~clustering.kmeans.types.KMeansInitStrategy

@@ -13,10 +13,11 @@ repository = "https://github.com/borchero/pycave"
 version = "0.0.0"
 
 [tool.poetry.dependencies]
+lightkit = "^0.2.3"
 numpy = "^1.20.3"
-python = "^3.8"
-pytorch-lightning = "^1.4.9,<1.5.0"
-torch = "^1.9.0"
+python = ">=3.8,<3.10"
+pytorch-lightning = "^1.5.0"
+torch = "^1.8.0"
 torchmetrics = "^0.5.1,<0.6.0"
 
 [tool.poetry.dev-dependencies]
@@ -25,7 +26,7 @@ black = "^21.6b0"
 flaky = "^3.7.0"
 isort = "^5.8.0"
 jupyter = "^1.0.0"
-pydata-sphinx-theme = "^0.6.3"
+pydata-sphinx-theme = "^0.7.2"
 pylint = "^2.8.3"
 pytest = "^6.2.4"
 pytest-benchmark = "^3.4.1"
@@ -81,4 +82,8 @@ profile = "black"
 skip_gitignore = true
 
 [tool.pytest.ini_options]
-filterwarnings = ["ignore::UserWarning"]
+filterwarnings = [
+  "ignore:.*Create unlinked descriptors is going to go away.*:DeprecationWarning",
+  "ignore:.*this fit will run with no optimizer.*",
+  "ignore:.*Consider increasing the value of the `num_workers` argument.*",
+]

@@ -2,8 +2,9 @@ from __future__ import annotations
 import logging
 from typing import Any, cast, Dict, List, Optional
 import torch
-from pycave.core import Estimator, PredictorMixin, TransformerMixin
-from pycave.data import TabularData
+from lightkit import BaseEstimator
+from lightkit.data import collate_tensor, DataLoader, dataset_from_tensors, TensorLike
+from lightkit.estimator import PredictorMixin, TransformerMixin
 from .lightning_module import (
     FeatureVarianceLightningModule,
     KMeansLightningModule,
@@ -17,9 +18,9 @@ logger = logging.getLogger(__name__)
 
 
 class KMeans(
-    Estimator[KMeansModel],
-    TransformerMixin[TabularData, torch.Tensor],
-    PredictorMixin[TabularData, torch.Tensor],
+    BaseEstimator[KMeansModel],
+    TransformerMixin[TensorLike, torch.Tensor],
+    PredictorMixin[TensorLike, torch.Tensor],
 ):
     """
     Model for clustering data into a predefined number of clusters. More information on K-means
@@ -49,7 +50,6 @@ class KMeans(
         init_strategy: KMeansInitStrategy = "kmeans++",
         convergence_tolerance: float = 1e-4,
         batch_size: Optional[int] = None,
-        num_workers: int = 0,
         trainer_params: Optional[Dict[str, Any]] = None,
     ):
         """
@@ -62,8 +62,6 @@ class KMeans(
             batch_size: The batch size to use when fitting the model. If not provided, the full
                 data will be used as a single batch. Set this if the full data does not fit into
                 memory.
-            num_workers: The number of workers to use for loading the data. Only used if a PyTorch
-                dataset is passed to :meth:`fit` or related methods.
             trainer_params: Initialization parameters to use when initializing a PyTorch Lightning
                 trainer. By default, it disables various stdout logs unless PyCave is configured to
                 do verbose logging. Checkpointing and logging are disabled regardless of the log
@@ -77,20 +75,17 @@ class KMeans(
             through the data.
         """
         super().__init__(
-            batch_size=batch_size,
-            num_workers=num_workers,
-            default_params=dict(
-                max_epochs=300,
-            ),
+            default_params=dict(max_epochs=300),
             user_params=trainer_params,
         )
 
         # Assign other properties
+        self.batch_size = batch_size
         self.num_clusters = num_clusters
         self.init_strategy = init_strategy
         self.convergence_tolerance = convergence_tolerance
 
-    def fit(self, data: TabularData) -> KMeans:
+    def fit(self, data: TensorLike) -> KMeans:
         """
         Fits the KMeans model on the provided data by running Lloyd's algorithm.
 
@@ -110,8 +105,12 @@ class KMeans(
         self._model = KMeansModel(config)
 
         # Setup the data loading
-        is_batch_training = self._uses_batch_training(data)  # type: ignore
-        loader = self._init_data_loader(data, for_training=True)
+        loader = DataLoader(
+            dataset_from_tensors(data),
+            batch_size=self.batch_size or len(data),
+            collate_fn=collate_tensor,
+        )
+        is_batch_training = self._num_batches_per_epoch(loader) == 1
 
         # First, initialize the centroids
         if self.init_strategy == "random":
@@ -125,14 +124,14 @@ class KMeans(
             num_epochs = 2 * config.num_clusters - 1
 
         logger.info("Running initialization...")
-        self._trainer(max_epochs=num_epochs).fit(module, loader)
+        self.trainer(max_epochs=num_epochs).fit(module, loader)
 
         # Then, in order to find the right convergence tolerance, we need to compute the variance
         # of the data.
         if self.convergence_tolerance != 0:
             variances = torch.empty(config.num_features)
             module = FeatureVarianceLightningModule(variances)
-            self._trainer().fit(module, loader)
+            self.trainer().fit(module, loader)
 
             tolerance_multiplier = cast(float, variances.mean().item())
             convergence_tolerance = self.convergence_tolerance * tolerance_multiplier
@@ -141,7 +140,7 @@ class KMeans(
 
         # Then, we can fit the actual model. We need a new trainer for that
         logger.info("Fitting K-Means...")
-        trainer = self._trainer()
+        trainer = self.trainer()
         module = KMeansLightningModule(
             self.model_,
             convergence_tolerance=convergence_tolerance,
@@ -150,11 +149,11 @@ class KMeans(
 
         # Assign convergence properties
         self.num_iter_ = module.current_epoch + 1
-        self.converged_ = module.current_epoch + 1 < cast(int, trainer.max_epochs)
+        self.converged_ = module.current_epoch + 1 < trainer.max_epochs
         self.inertia_ = cast(float, trainer.callback_metrics["inertia"].item())
         return self
 
-    def predict(self, data: TabularData) -> torch.Tensor:
+    def predict(self, data: TensorLike) -> torch.Tensor:
         """
         Predicts the closest cluster for each item provided.
 
@@ -170,13 +169,17 @@ class KMeans(
             a subset of the predictions. If you want to aggregate predictions, make sure to gather
             the values returned from this method.
         """
-        result = self._trainer().predict(
-            KMeansLightningModule(self.model_, predict_target="assignments"),
-            self._init_data_loader(data, for_training=False),
+        loader = DataLoader(
+            dataset_from_tensors(data),
+            batch_size=self.batch_size or len(data),
+            collate_fn=collate_tensor,
+        )
+        result = self.trainer().predict(
+            KMeansLightningModule(self.model_, predict_target="assignments"), loader
         )
         return torch.cat(cast(List[torch.Tensor], result))
 
-    def score(self, data: TabularData) -> float:
+    def score(self, data: TensorLike) -> float:
         """
         Computes the average inertia of all the provided datapoints. That is, it computes the mean
         squared distance to each datapoint's closest centroid.
@@ -190,14 +193,15 @@ class KMeans(
         Note:
             See :meth:`score_samples` to obtain the inertia for individual sequences.
         """
-        result = self._trainer().test(
-            KMeansLightningModule(self.model_),
-            self._init_data_loader(data, for_training=False),
-            verbose=False,
+        loader = DataLoader(
+            dataset_from_tensors(data),
+            batch_size=self.batch_size or len(data),
+            collate_fn=collate_tensor,
         )
+        result = self.trainer().test(KMeansLightningModule(self.model_), loader, verbose=False)
         return result[0]["inertia"]
 
-    def score_samples(self, data: TabularData) -> torch.Tensor:
+    def score_samples(self, data: TensorLike) -> torch.Tensor:
         """
         Computes the inertia for each of the the provided datapoints. That is, it computes the mean
         squared distance of each datapoint to its closest centroid.
@@ -213,13 +217,17 @@ class KMeans(
             a subset of the predictions. If you want to aggregate predictions, make sure to gather
             the values returned from this method.
         """
-        result = self._trainer().predict(
-            KMeansLightningModule(self.model_, predict_target="inertias"),
-            self._init_data_loader(data, for_training=False),
+        loader = DataLoader(
+            dataset_from_tensors(data),
+            batch_size=self.batch_size or len(data),
+            collate_fn=collate_tensor,
+        )
+        result = self.trainer().predict(
+            KMeansLightningModule(self.model_, predict_target="inertias"), loader
         )
         return torch.cat(cast(List[torch.Tensor], result))
 
-    def transform(self, data: TabularData) -> torch.Tensor:
+    def transform(self, data: TensorLike) -> torch.Tensor:
         """
         Transforms the provided data into the cluster-distance space. That is, it returns the
         distance of each datapoint to each cluster centroid.
@@ -236,8 +244,12 @@ class KMeans(
             a subset of the predictions. If you want to aggregate predictions, make sure to gather
             the values returned from this method.
         """
-        result = self._trainer().predict(
-            KMeansLightningModule(self.model_, predict_target="distances"),
-            self._init_data_loader(data, for_training=False),
+        loader = DataLoader(
+            dataset_from_tensors(data),
+            batch_size=self.batch_size or len(data),
+            collate_fn=collate_tensor,
+        )
+        result = self.trainer().predict(
+            KMeansLightningModule(self.model_, predict_target="distances"), loader
         )
         return torch.cat(cast(List[torch.Tensor], result))

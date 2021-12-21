@@ -5,7 +5,7 @@ import pytorch_lightning as pl
 import torch
 from pytorch_lightning.callbacks import EarlyStopping
 from torchmetrics import AverageMeter
-from pycave.core import NonparametricLightningModule
+from pycave.utils import NonparametricLightningModule
 from .metrics import (
     BatchAverager,
     BatchSummer,
