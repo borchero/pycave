@@ -46,7 +46,7 @@ def test_fit_converged(num_epochs: int, converged: bool):
     assert estimator.converged_ == converged
 
 
-@pytest.mark.flaky(max_runs=2, min_passes=1)
+@pytest.mark.flaky(max_runs=5, min_passes=1)
 @pytest.mark.parametrize(
     ("num_datapoints", "batch_size", "num_features", "num_centroids"),
     [
