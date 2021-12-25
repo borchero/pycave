@@ -40,6 +40,8 @@ pycave
 runtime
 scikit
 SequenceData
+Subclasses
+subclasses
 stdout
 TabularData
 tbd
