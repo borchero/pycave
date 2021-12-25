@@ -2,7 +2,7 @@ from __future__ import annotations
 import logging
 from typing import Any, cast, Dict, List, Optional, Tuple
 import torch
-from lightkit import BaseEstimator
+from lightkit import ConfigurableBaseEstimator
 from lightkit.data import collate_tensor, DataLoader, dataset_from_tensors, TensorLike
 from lightkit.estimator import PredictorMixin
 from pycave.bayes.core import CovarianceType
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class GaussianMixture(
-    BaseEstimator[GaussianMixtureModel],
+    ConfigurableBaseEstimator[GaussianMixtureModel],
     PredictorMixin[TensorLike, torch.Tensor],
 ):
     """
@@ -128,7 +128,7 @@ class GaussianMixture(
             num_features=num_features,
             covariance_type=self.covariance_type,  # type: ignore
         )
-        self._model = GaussianMixtureModel(config)
+        self.model_ = GaussianMixtureModel(config)
 
         # Setup the data loading
         loader = DataLoader(

@@ -2,7 +2,7 @@ from __future__ import annotations
 import logging
 from typing import Any, cast, Dict, List, Optional
 import torch
-from lightkit import BaseEstimator
+from lightkit import ConfigurableBaseEstimator
 from lightkit.data import collate_tensor, DataLoader, dataset_from_tensors, TensorLike
 from lightkit.estimator import PredictorMixin, TransformerMixin
 from .lightning_module import (
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class KMeans(
-    BaseEstimator[KMeansModel],
+    ConfigurableBaseEstimator[KMeansModel],
     TransformerMixin[TensorLike, torch.Tensor],
     PredictorMixin[TensorLike, torch.Tensor],
 ):
@@ -102,7 +102,7 @@ class KMeans(
             num_clusters=self.num_clusters,
             num_features=num_features,
         )
-        self._model = KMeansModel(config)
+        self.model_ = KMeansModel(config)
 
         # Setup the data loading
         loader = DataLoader(

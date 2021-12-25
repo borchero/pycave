@@ -13,7 +13,7 @@ repository = "https://github.com/borchero/pycave"
 version = "0.0.0"
 
 [tool.poetry.dependencies]
-lightkit = "^0.2.3"
+lightkit = "^0.3.0"
 numpy = "^1.20.3"
 python = ">=3.8,<3.10"
 pytorch-lightning = "^1.5.0"

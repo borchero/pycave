@@ -3,7 +3,7 @@ import logging
 from typing import Any, cast, Dict, List, Optional
 import numpy as np
 import torch
-from lightkit import BaseEstimator
+from lightkit import ConfigurableBaseEstimator
 from lightkit.data import DataLoader, dataset_from_tensors
 from torch.nn.utils.rnn import PackedSequence
 from torch.utils.data import Dataset
@@ -14,7 +14,7 @@ from .types import collate_sequences, collate_sequences_same_length, SequenceDat
 logger = logging.getLogger(__name__)
 
 
-class MarkovChain(BaseEstimator[MarkovChainModel]):
+class MarkovChain(ConfigurableBaseEstimator[MarkovChainModel]):
     """
     Probabilistic model for observed state transitions. The Markov chain is similar to the hidden
     Markov model, only that the hidden states are known. More information on the Markov chain is
@@ -79,7 +79,7 @@ class MarkovChain(BaseEstimator[MarkovChainModel]):
         config = MarkovChainModelConfig(
             num_states=self.num_states or _get_num_states(sequences),
         )
-        self._model = MarkovChainModel(config)
+        self.model_ = MarkovChainModel(config)
 
         logger.info("Fitting Markov chain...")
         self.trainer().fit(
