@@ -6,6 +6,7 @@ Centroids
 centroids
 Checkpointing
 Cholesky
+contravariant
 covariances
 dataclass
 dataloader
