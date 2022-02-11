@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class KMeans(
-    ConfigurableBaseEstimator[KMeansModel],
+    ConfigurableBaseEstimator[KMeansModel],  # type: ignore
     TransformerMixin[TensorLike, torch.Tensor],
     PredictorMixin[TensorLike, torch.Tensor],
 ):

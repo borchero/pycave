@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class GaussianMixture(
-    ConfigurableBaseEstimator[GaussianMixtureModel],
+    ConfigurableBaseEstimator[GaussianMixtureModel],  # type: ignore
     PredictorMixin[TensorLike, torch.Tensor],
 ):
     """

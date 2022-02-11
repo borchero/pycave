@@ -14,7 +14,7 @@ from .types import collate_sequences, collate_sequences_same_length, SequenceDat
 logger = logging.getLogger(__name__)
 
 
-class MarkovChain(ConfigurableBaseEstimator[MarkovChainModel]):
+class MarkovChain(ConfigurableBaseEstimator[MarkovChainModel]):  # type: ignore
     """
     Probabilistic model for observed state transitions. The Markov chain is similar to the hidden
     Markov model, only that the hidden states are known. More information on the Markov chain is

@@ -22,5 +22,7 @@ jobs:
           && echo "PATH=$HOME/.poetry/bin:$PATH" >> $GITHUB_ENV
       - name: Install Library
         run: poetry install --no-interaction --no-ansi
+      - name: Fix Disutils
+        run: poetry run pip install setuptools==59.5.0
       - name: Run Pytest
         run: poetry run pytest tests
