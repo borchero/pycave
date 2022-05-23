@@ -36,6 +36,8 @@ class KMeans(
             KMeansModelConfig
     """
 
+    #: The fitted PyTorch module with all estimated parameters.
+    model_: KMeansModel
     #: A boolean indicating whether the model converged during training.
     converged_: bool
     #: The number of iterations the model was fitted for, excluding initialization.
@@ -102,7 +104,7 @@ class KMeans(
             num_clusters=self.num_clusters,
             num_features=num_features,
         )
-        self._model = KMeansModel(config)
+        self.model_ = KMeansModel(config)
 
         # Setup the data loading
         loader = DataLoader(

@@ -38,6 +38,8 @@ class GaussianMixture(
             GaussianMixtureModelConfig
     """
 
+    #: The fitted PyTorch module with all estimated parameters.
+    model_: GaussianMixtureModel
     #: A boolean indicating whether the model converged during training.
     converged_: bool
     #: The number of iterations the model was fitted for, excluding initialization.
@@ -128,7 +130,7 @@ class GaussianMixture(
             num_features=num_features,
             covariance_type=self.covariance_type,  # type: ignore
         )
-        self._model = GaussianMixtureModel(config)
+        self.model_ = GaussianMixtureModel(config)
 
         # Setup the data loading
         loader = DataLoader(
