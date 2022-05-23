@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import os
 import sys
-from typing import Any, get_type_hints
+from typing import Any
 
 filepath = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(filepath, ".."))
@@ -90,42 +90,4 @@ def format_annotation(annotation: Any, *args: Any, **kwargs: Any):
     return format_annotation_orig(annotation, *args, **kwargs)
 
 
-def get_all_type_hints(obj: Any, name: str):
-    rv = {}
-
-    try:
-        rv = get_type_hints(obj)
-        # HERE WE FIX THE ANNOTATIONS
-        rv = {
-            k: rv[k] if v not in autodoc_type_aliases else autodoc_type_aliases[v]
-            for k, v in obj.__annotations__.items()
-        }
-    except (AttributeError, TypeError, RecursionError):
-        # Introspecting a slot wrapper will raise TypeError, and and some recursive type
-        # definitions will cause a RecursionError (https://github.com/python/typing/issues/574).
-        pass
-    except NameError:
-        rv = obj.__annotations__
-
-    if rv:
-        return rv
-
-    rv = sphinx_autodoc_typehints.backfill_type_hints(obj, name)
-
-    try:
-        obj.__annotations__ = rv
-    except (AttributeError, TypeError):
-        return rv
-
-    try:
-        rv = get_type_hints(obj)
-    except (AttributeError, TypeError):
-        pass
-    except NameError:
-        rv = obj.__annotations__
-
-    return rv
-
-
 sphinx_autodoc_typehints.format_annotation = format_annotation
-sphinx_autodoc_typehints.get_all_type_hints = get_all_type_hints
