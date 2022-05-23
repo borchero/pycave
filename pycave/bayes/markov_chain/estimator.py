@@ -79,7 +79,7 @@ class MarkovChain(ConfigurableBaseEstimator[MarkovChainModel]):  # type: ignore
         config = MarkovChainModelConfig(
             num_states=self.num_states or _get_num_states(sequences),
         )
-        self.model_ = MarkovChainModel(config)
+        self._model = MarkovChainModel(config)
 
         logger.info("Fitting Markov chain...")
         self.trainer().fit(

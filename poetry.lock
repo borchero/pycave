@@ -772,7 +772,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "lightkit"
-version = "0.3.7"
+version = "0.4.1"
 description = "Utilities for PyTorch and PyTorch Lightning."
 category = "main"
 optional = false
@@ -1959,7 +1959,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.10"
-content-hash = "654eda18a799a6f6905e8ba8f23616d4bbeea988e5c0a40966e08a6aacd71c9a"
+content-hash = "71e986a0a35a053cbcdba285c777d489e772f54f79929f6b37cdbfce08610635"
 
 [metadata.files]
 absl-py = [
@@ -2522,8 +2522,8 @@ lazy-object-proxy = [
     {file = "lazy_object_proxy-1.7.1-pp37.pp38-none-any.whl", hash = "sha256:d66906d5785da8e0be7360912e99c9188b70f52c422f9fc18223347235691a84"},
 ]
 lightkit = [
-    {file = "lightkit-0.3.7-py3-none-any.whl", hash = "sha256:945d3481b3c12d3c3385385c5ba515b9dc9dd9f82cd60b9c2ca442ca08be42a7"},
-    {file = "lightkit-0.3.7.tar.gz", hash = "sha256:f8a82c624e8e6e8381fcd0125cbca01319801b42edaf66584facdb3c6e7c9559"},
+    {file = "lightkit-0.4.1-py3-none-any.whl", hash = "sha256:30183424661aeb48c63d9fbb4df16932acc1adf569c7a18f08faacbea4a9a554"},
+    {file = "lightkit-0.4.1.tar.gz", hash = "sha256:0e34fbc85b146547f4b92787b102a6a7673db1f628f861b3016a50e3875286b3"},
 ]
 markdown = [
     {file = "Markdown-3.3.7-py3-none-any.whl", hash = "sha256:f5da449a6e1c989a4cea2631aa8ee67caa5a2ef855d551c88f9e309f4634c621"},

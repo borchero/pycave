@@ -128,7 +128,7 @@ class GaussianMixture(
             num_features=num_features,
             covariance_type=self.covariance_type,  # type: ignore
         )
-        self.model_ = GaussianMixtureModel(config)
+        self._model = GaussianMixtureModel(config)
 
         # Setup the data loading
         loader = DataLoader(

@@ -102,7 +102,7 @@ class KMeans(
             num_clusters=self.num_clusters,
             num_features=num_features,
         )
-        self.model_ = KMeansModel(config)
+        self._model = KMeansModel(config)
 
         # Setup the data loading
         loader = DataLoader(

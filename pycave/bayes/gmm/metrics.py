@@ -126,7 +126,7 @@ class CovarianceAggregator(Metric):
             return self.covariance_sum / self.component_weights + self.reg * self.num_features
         if self.covariance_type == "tied":
             result = self.covariance_sum / self.component_weights.sum()
-            result.flatten()[:: self.num_features + 1].add_(self.reg)
+            result = result.flatten()[:: self.num_features + 1].add_(self.reg)
             return result
         # covariance_type == "full"
         result = self.covariance_sum / self.component_weights.unsqueeze(-1).unsqueeze(-1)
