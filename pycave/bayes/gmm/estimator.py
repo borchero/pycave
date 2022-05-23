@@ -185,7 +185,7 @@ class GaussianMixture(
         trainer.fit(module, loader)
 
         # Assign convergence properties
-        self.num_iter_ = module.current_epoch + 1
+        self.num_iter_ = module.current_epoch
         if is_batch_training:
             self.num_iter_ //= 2
         self.converged_ = trainer.should_stop

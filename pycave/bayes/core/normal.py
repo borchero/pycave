@@ -28,7 +28,7 @@ def cholesky_precision(covariances: torch.Tensor, covariance_type: CovarianceTyp
         if covariance_type == "full":
             num_components = covariances.size(0)
             target = target.unsqueeze(0).expand(num_components, -1, -1)
-        return torch.triangular_solve(target, cholesky, upper=False).solution.transpose(-2, -1)
+        return torch.linalg.solve_triangular(cholesky, target, upper=False).transpose(-2, -1)
 
     # "Simple" kind of covariance
     return covariances.sqrt().reciprocal()

@@ -148,8 +148,8 @@ class KMeans(
         trainer.fit(module, loader)
 
         # Assign convergence properties
-        self.num_iter_ = module.current_epoch + 1
-        self.converged_ = module.current_epoch + 1 < trainer.max_epochs
+        self.num_iter_ = module.current_epoch
+        self.converged_ = module.current_epoch < trainer.max_epochs
         self.inertia_ = cast(float, trainer.callback_metrics["inertia"].item())
         return self
 

@@ -58,6 +58,7 @@ class GaussianMixtureModel(Configurable[GaussianMixtureModelConfig], nn.Module):
 
         self.reset_parameters()
 
+    @jit.unused
     @property
     def covariances(self) -> torch.Tensor:
         """
