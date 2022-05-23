@@ -23,28 +23,36 @@ from tests._data.normal import (
 def test_cholesky_precision_spherical(covars: torch.Tensor):
     expected = _compute_precision_cholesky(covars.numpy(), "spherical")  # type: ignore
     actual = cholesky_precision(covars, "spherical")
-    assert torch.allclose(torch.as_tensor(expected, dtype=torch.float), actual)
+    assert torch.allclose(
+        torch.as_tensor(expected, dtype=torch.float), actual, rtol=1e-4, atol=1e-4
+    )
 
 
 @pytest.mark.parametrize("covars", sample_diag_covars([70, 5, 200], [3, 50, 100]))
 def test_cholesky_precision_diag(covars: torch.Tensor):
     expected = _compute_precision_cholesky(covars.numpy(), "diag")  # type: ignore
     actual = cholesky_precision(covars, "diag")
-    assert torch.allclose(torch.as_tensor(expected, dtype=torch.float), actual)
+    assert torch.allclose(
+        torch.as_tensor(expected, dtype=torch.float), actual, rtol=1e-4, atol=1e-4
+    )
 
 
 @pytest.mark.parametrize("covars", sample_full_covars([70, 5, 200], [3, 50, 100]))
 def test_cholesky_precision_full(covars: torch.Tensor):
     expected = _compute_precision_cholesky(covars.numpy(), "full")  # type: ignore
     actual = cholesky_precision(covars, "full")
-    assert torch.allclose(torch.as_tensor(expected, dtype=torch.float), actual)
+    assert torch.allclose(
+        torch.as_tensor(expected, dtype=torch.float), actual, rtol=1e-4, atol=1e-4
+    )
 
 
 @pytest.mark.parametrize("covars", sample_full_covars([1, 1, 1], [3, 50, 100]))
 def test_cholesky_precision_tied(covars: torch.Tensor):
     expected = _compute_precision_cholesky(covars.numpy(), "tied")  # type: ignore
     actual = cholesky_precision(covars, "tied")
-    assert torch.allclose(torch.as_tensor(expected, dtype=torch.float), actual)
+    assert torch.allclose(
+        torch.as_tensor(expected, dtype=torch.float), actual, rtol=1e-4, atol=1e-4
+    )
 
 
 # -------------------------------------------------------------------------------------------------
