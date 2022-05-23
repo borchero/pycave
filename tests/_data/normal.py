@@ -23,5 +23,5 @@ def sample_full_covars(counts: List[int], dims: List[int]) -> List[torch.Tensor]
     result = []
     for count, dim in zip(counts, dims):
         A = torch.randn(count, dim * 10, dim)
-        result.append(A.permute(0, 2, 1).bmm(A).squeeze())
+        result.append(A.permute(0, 2, 1).bmm(A).squeeze() + 1e-6)
     return result
