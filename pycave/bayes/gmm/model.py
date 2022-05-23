@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from lightkit.nn import Configurable
 from torch import jit, nn
-from pycave.bayes.core import covariance_shape, CovarianceType
+from pycave.bayes.core import covariance, covariance_shape, CovarianceType
 from pycave.bayes.core._jit import jit_log_normal, jit_sample_normal
 
 
@@ -57,6 +57,14 @@ class GaussianMixtureModel(Configurable[GaussianMixtureModelConfig], nn.Module):
         self.register_buffer("precisions_cholesky", torch.empty(shape))
 
         self.reset_parameters()
+
+    @property
+    def covariances(self) -> torch.Tensor:
+        """
+        The covariance matrices learnt for the GMM's components. The shape of the tensor depends on
+        the covariance type, see :class:`CovarianceType`.
+        """
+        return covariance(self.precisions_cholesky, self.covariance_type)  # type: ignore
 
     @jit.unused
     def reset_parameters(self) -> None:

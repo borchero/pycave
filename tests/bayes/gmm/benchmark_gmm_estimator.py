@@ -5,9 +5,9 @@ import pytorch_lightning as pl
 import torch
 from pytest_benchmark.fixture import BenchmarkFixture  # type: ignore
 from sklearn.mixture import GaussianMixture as SklearnGaussianMixture  # type: ignore
-from tests._data.gmm import sample_gmm
 from pycave.bayes import GaussianMixture
 from pycave.bayes.core.types import CovarianceType
+from tests._data.gmm import sample_gmm
 
 
 @pytest.mark.parametrize(

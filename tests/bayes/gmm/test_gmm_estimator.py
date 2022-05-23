@@ -4,9 +4,9 @@ from typing import Optional
 import pytest
 import torch
 from sklearn.mixture import GaussianMixture as SklearnGaussianMixture  # type: ignore
-from tests._data.gmm import sample_gmm
 from pycave.bayes import GaussianMixture
 from pycave.bayes.core import CovarianceType
+from tests._data.gmm import sample_gmm
 
 
 def test_fit_model_config():

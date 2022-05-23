@@ -34,6 +34,33 @@ def cholesky_precision(covariances: torch.Tensor, covariance_type: CovarianceTyp
     return covariances.sqrt().reciprocal()
 
 
+def covariance(cholesky_precisions: torch.Tensor, covariance_type: CovarianceType) -> torch.Tensor:
+    """
+    Computes the covariances matrices of the provided Cholesky decompositions of the precision
+    matrices. This function is the inverse of :meth:`cholesky_precision`.
+
+    Args:
+        cholesky_precisions: A tensor of shape ``[num_components, dim, dim]``, ``[dim, dim]``,
+            ``[num_components, dim]``, ``[dim]`` or ``[num_components]`` depending on the
+            ``covariance_type``. These are the Cholesky decompositions of the precisions of
+            multivariate Normal distributions.
+        covariance_type: The type of covariance for the covariance matrices given.
+
+    Returns:
+        A tensor of the same shape as ``cholesky_precisions``, providing the covariance matrices
+        corresponding to the given Cholesky-decomposed precision matrices.
+    """
+    if covariance_type in ("tied", "full"):
+        if covariance_type == "tied":
+            precisions = torch.matmul(cholesky_precisions, cholesky_precisions.T)
+        else:
+            precisions = torch.bmm(cholesky_precisions, cholesky_precisions.transpose(1, 2))
+        return torch.linalg.inv(precisions)
+
+    # "Simple" kind of covariance
+    return (cholesky_precisions**2).reciprocal()
+
+
 def log_normal(
     x: torch.Tensor,
     means: torch.Tensor,
