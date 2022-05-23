@@ -83,7 +83,7 @@ def test_fit_nll(
         num_components,
         covariance_type=covariance_type,
         batch_size=batch_size,
-        covariance_regularization=1e-5,
+        covariance_regularization=1e-4,
         trainer_params=dict(precision=64),
     )
     ours_nll = estimator.fit(data).score(data)
