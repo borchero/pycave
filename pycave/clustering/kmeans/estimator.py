@@ -152,7 +152,8 @@ class KMeans(
         # Assign convergence properties
         self.num_iter_ = module.current_epoch
         self.converged_ = module.current_epoch < trainer.max_epochs
-        self.inertia_ = cast(float, trainer.callback_metrics["inertia"].item())
+        if "inertia" in trainer.callback_metrics:
+            self.inertia_ = cast(float, trainer.callback_metrics["inertia"].item())
         return self
 
     def predict(self, data: TensorLike) -> torch.Tensor:

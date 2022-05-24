@@ -83,14 +83,8 @@ class GaussianMixtureModel(Configurable[GaussianMixtureModelConfig], nn.Module):
         nn.init.normal_(self.means)
 
         nn.init.uniform_(self.precisions_cholesky)
-        if self.covariance_type == "full":
-            self.precisions_cholesky.copy_(
-                self.precisions_cholesky.bmm(self.precisions_cholesky.transpose(-1, -2))
-            )
-        elif self.covariance_type == "tied":
-            self.precisions_cholesky.copy_(
-                self.precisions_cholesky.mm(self.precisions_cholesky.t())
-            )
+        if self.covariance_type in ("full", "tied"):
+            self.precisions_cholesky.tril_()
 
     def forward(self, data: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """

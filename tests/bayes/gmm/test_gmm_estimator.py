@@ -78,9 +78,6 @@ def test_fit_nll(
         covariance_type=covariance_type,
     )
 
-    # Shuffle the data
-    data = data[torch.randperm(len(data))]
-
     # Ours
     estimator = GaussianMixture(
         num_components,
