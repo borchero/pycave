@@ -5,9 +5,9 @@ import pytorch_lightning as pl
 import torch
 from pytest_benchmark.fixture import BenchmarkFixture  # type: ignore
 from sklearn.cluster import KMeans as SklearnKMeans  # type: ignore
-from tests._data.gmm import sample_gmm
 from pycave.clustering import KMeans
 from pycave.clustering.kmeans.types import KMeansInitStrategy
+from tests._data.gmm import sample_gmm
 
 
 @pytest.mark.parametrize(

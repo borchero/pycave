@@ -4,8 +4,8 @@ from typing import Optional
 import pytest
 import torch
 from sklearn.cluster import KMeans as SklearnKMeans  # type: ignore
-from tests._data.gmm import sample_gmm
 from pycave.clustering import KMeans
+from tests._data.gmm import sample_gmm
 
 
 def test_fit_automatic_config():

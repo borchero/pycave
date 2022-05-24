@@ -30,6 +30,9 @@ class MarkovChain(ConfigurableBaseEstimator[MarkovChainModel]):  # type: ignore
             MarkovChainModelConfig
     """
 
+    #: The fitted PyTorch module with all estimated parameters.
+    model_: MarkovChainModel
+
     def __init__(
         self,
         num_states: Optional[int] = None,

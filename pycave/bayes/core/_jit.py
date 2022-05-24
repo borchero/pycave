@@ -82,7 +82,7 @@ def _cholesky_covariance(chol_precision: torch.Tensor, covariance_type: str) -> 
     if covariance_type in ("tied", "full"):
         num_features = chol_precision.size(-1)
         target = torch.eye(num_features, dtype=chol_precision.dtype, device=chol_precision.device)
-        return torch.triangular_solve(target, chol_precision, upper=True).solution.t()
+        return torch.linalg.solve_triangular(chol_precision, target, upper=True).t()
 
     # Simple covariance type
     return chol_precision.reciprocal()

@@ -38,6 +38,8 @@ class GaussianMixture(
             GaussianMixtureModelConfig
     """
 
+    #: The fitted PyTorch module with all estimated parameters.
+    model_: GaussianMixtureModel
     #: A boolean indicating whether the model converged during training.
     converged_: bool
     #: The number of iterations the model was fitted for, excluding initialization.
@@ -185,7 +187,7 @@ class GaussianMixture(
         trainer.fit(module, loader)
 
         # Assign convergence properties
-        self.num_iter_ = module.current_epoch + 1
+        self.num_iter_ = module.current_epoch
         if is_batch_training:
             self.num_iter_ //= 2
         self.converged_ = trainer.should_stop

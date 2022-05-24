@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from lightkit.nn import Configurable
 from torch import jit, nn
-from pycave.bayes.core import covariance_shape, CovarianceType
+from pycave.bayes.core import covariance, covariance_shape, CovarianceType
 from pycave.bayes.core._jit import jit_log_normal, jit_sample_normal
 
 
@@ -59,6 +59,15 @@ class GaussianMixtureModel(Configurable[GaussianMixtureModelConfig], nn.Module):
         self.reset_parameters()
 
     @jit.unused
+    @property
+    def covariances(self) -> torch.Tensor:
+        """
+        The covariance matrices learnt for the GMM's components. The shape of the tensor depends on
+        the covariance type, see :class:`CovarianceType`.
+        """
+        return covariance(self.precisions_cholesky, self.covariance_type)  # type: ignore
+
+    @jit.unused
     def reset_parameters(self) -> None:
         """
         Resets the parameters of the GMM.
@@ -74,14 +83,8 @@ class GaussianMixtureModel(Configurable[GaussianMixtureModelConfig], nn.Module):
         nn.init.normal_(self.means)
 
         nn.init.uniform_(self.precisions_cholesky)
-        if self.covariance_type == "full":
-            self.precisions_cholesky.copy_(
-                self.precisions_cholesky.bmm(self.precisions_cholesky.transpose(-1, -2))
-            )
-        elif self.covariance_type == "tied":
-            self.precisions_cholesky.copy_(
-                self.precisions_cholesky.mm(self.precisions_cholesky.t())
-            )
+        if self.covariance_type in ("full", "tied"):
+            self.precisions_cholesky.tril_()
 
     def forward(self, data: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """

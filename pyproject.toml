@@ -13,16 +13,16 @@ repository = "https://github.com/borchero/pycave"
 version = "0.0.0"
 
 [tool.poetry.dependencies]
-lightkit = "^0.3.7"
+lightkit = "^0.4.4"
 numpy = "^1.20.3"
 python = ">=3.8,<3.10"
-pytorch-lightning = "^1.5.0"
+pytorch-lightning = "^1.6.0"
 torch = "^1.8.0"
 torchmetrics = "^0.5.1,<0.6.0"
 
 [tool.poetry.dev-dependencies]
 Sphinx = "^4.0.2"
-black = "^21.6b0"
+black = "^22.3.0"
 flaky = "^3.7.0"
 isort = "^5.8.0"
 jupyter = "^1.0.0"
@@ -75,7 +75,7 @@ line-length = 99
 [tool.isort]
 force_alphabetical_sort_within_sections = true
 include_trailing_comma = true
-known_first_party = "pycave"
+known_first_party = "pycave,tests"
 line_length = 99
 lines_between_sections = 0
 profile = "black"
