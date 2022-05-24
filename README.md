@@ -112,4 +112,4 @@ Currently, PyCave implements three different models:
 
 ## License
 
-PyCave is licensed under the [MIT License](https://github.com/borchero/pycave/blob/master/LICENSE).
+PyCave is licensed under the [MIT License](https://github.com/borchero/pycave/blob/main/LICENSE).
