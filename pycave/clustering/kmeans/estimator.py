@@ -112,7 +112,7 @@ class KMeans(
             batch_size=self.batch_size or len(data),
             collate_fn=collate_tensor,
         )
-        is_batch_training = self._num_batches_per_epoch(loader) == 1
+        is_batch_training = self._num_batches_per_epoch(loader) > 1
 
         # First, initialize the centroids
         if self.init_strategy == "random":
