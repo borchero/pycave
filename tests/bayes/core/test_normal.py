@@ -78,14 +78,16 @@ def test_covariances_diag(covars: torch.Tensor):
 def test_covariances_full(covars: torch.Tensor):
     precision_cholesky = _compute_precision_cholesky(covars.numpy(), "full")  # type: ignore
     actual = covariance(torch.as_tensor(precision_cholesky, dtype=torch.double), "full")
-    assert torch.allclose(covars.to(torch.double), actual, rtol=1e-3, atol=1e-3)
+    assert torch.allclose(covars, covars.transpose(1, 2))
+    assert torch.allclose(covars.to(torch.double), actual)
 
 
 @pytest.mark.parametrize("covars", sample_full_covars([1, 1, 1], [3, 50, 100]))
 def test_covariances_tied(covars: torch.Tensor):
     precision_cholesky = _compute_precision_cholesky(covars.numpy(), "tied")  # type: ignore
     actual = covariance(torch.as_tensor(precision_cholesky, dtype=torch.double), "tied")
-    assert torch.allclose(covars.to(torch.double), actual, rtol=1e-3, atol=1e-3)
+    assert torch.allclose(covars, covars.T)
+    assert torch.allclose(covars.to(torch.double), actual)
 
 
 # -------------------------------------------------------------------------------------------------
