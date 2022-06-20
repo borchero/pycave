@@ -51,11 +51,10 @@ def covariance(cholesky_precisions: torch.Tensor, covariance_type: CovarianceTyp
         corresponding to the given Cholesky-decomposed precision matrices.
     """
     if covariance_type in ("tied", "full"):
+        choleksy_covars = torch.linalg.inv(cholesky_precisions)
         if covariance_type == "tied":
-            precisions = torch.matmul(cholesky_precisions, cholesky_precisions.T)
-        else:
-            precisions = torch.bmm(cholesky_precisions, cholesky_precisions.transpose(1, 2))
-        return torch.linalg.inv(precisions)
+            return torch.matmul(choleksy_covars.T, choleksy_covars)
+        return torch.bmm(choleksy_covars.transpose(1, 2), choleksy_covars)
 
     # "Simple" kind of covariance
     return (cholesky_precisions**2).reciprocal()
