@@ -4,7 +4,7 @@ from typing import List, Literal
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning.callbacks import EarlyStopping
-from torchmetrics import AverageMeter
+from torchmetrics import MeanMetric
 from pycave.utils import NonparametricLightningModule
 from .metrics import (
     BatchAverager,
@@ -51,7 +51,7 @@ class KMeansLightningModule(NonparametricLightningModule):
         )
 
         # Initialize metrics
-        self.metric_inertia = AverageMeter()
+        self.metric_inertia = MeanMetric()
 
     def configure_callbacks(self) -> List[pl.Callback]:
         if self.convergence_tolerance == 0:
@@ -237,8 +237,8 @@ class KmeansPlusPlusInitLightningModule(NonparametricLightningModule):
 
     def nonparametric_training_epoch_end(self) -> None:
         if self.current_epoch == 0:
-            choice = self.uniform_sampler.compute()[0]
-            self.model.centroids[0].copy_(choice)
+            choice = self.uniform_sampler.compute()
+            self.model.centroids[0].copy_(choice[0] if choice.dim() > 0 else choice)
         elif self._is_current_epoch_sampling:
             candidates = self.distance_sampler.compute()
             self.centroid_candidates.copy_(candidates)

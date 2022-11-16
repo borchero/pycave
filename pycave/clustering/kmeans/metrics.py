@@ -9,6 +9,8 @@ class CentroidAggregator(Metric):
     The centroid aggregator aggregates kmeans centroids over batches and processes.
     """
 
+    full_state_update = False
+
     def __init__(
         self,
         num_clusters: int,
@@ -47,6 +49,8 @@ class UniformSampler(Metric):
     number of datapoints they were already sampled from).
     """
 
+    full_state_update = False
+    
     def __init__(
         self,
         num_choices: int,
@@ -104,6 +108,8 @@ class DistanceSampler(Metric):
     choices is not part of this sampler. Within each "cycle", it computes a given number of
     candidates. Candidates are sampled independently and may be duplicates.
     """
+
+    full_state_update = False
 
     def __init__(
         self,
@@ -165,6 +171,8 @@ class BatchSummer(Metric):
     Sums the values for a batch of items independently.
     """
 
+    full_state_update = True
+
     def __init__(self, num_values: int, *, dist_sync_fn: Optional[Callable[[Any], Any]] = None):
         super().__init__(dist_sync_fn=dist_sync_fn)  # type: ignore
 
@@ -182,6 +190,8 @@ class BatchAverager(Metric):
     """
     Averages the values for a batch of items independently.
     """
+
+    full_state_update = False
 
     def __init__(
         self,

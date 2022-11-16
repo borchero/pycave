@@ -3,7 +3,7 @@ from typing import List, Tuple
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning.callbacks import EarlyStopping
-from torchmetrics import AverageMeter
+from torchmetrics import MeanMetric
 from pycave.bayes.core import cholesky_precision
 from pycave.utils import NonparametricLightningModule
 from .metrics import CovarianceAggregator, MeanAggregator, PriorAggregator
@@ -66,7 +66,7 @@ class GaussianMixtureLightningModule(NonparametricLightningModule):
         )
 
         # Initialize metrics
-        self.metric_nll = AverageMeter(dist_sync_fn=self.all_gather)
+        self.metric_nll = MeanMetric(dist_sync_fn=self.all_gather)
 
     def configure_callbacks(self) -> List[pl.Callback]:
         if self.convergence_tolerance == 0:
