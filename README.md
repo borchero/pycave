@@ -86,18 +86,18 @@ class. It's
 [**init**](https://pytorch-lightning.readthedocs.io/en/latest/api/pytorch_lightning.trainer.trainer.html#pytorch_lightning.trainer.trainer.Trainer.__init__)
 method provides various configuration options.
 
-If you want to run K-Means with a GPU, you can pass the options `accelerator='gpu'` and `devices=0` to the estimator's
+If you want to run K-Means with a GPU, you can pass the options `accelerator='gpu'` and `devices=1` to the estimator's
 initializer:
 
 ```python
-estimator = KMeans(3, trainer_params=dict(accelerator='gpu', devices=0))
+estimator = KMeans(3, trainer_params=dict(accelerator='gpu', devices=1))
 ```
 
 Similarly, if you want to train on 4 nodes simultaneously where each node has one GPU available,
 you can specify this as follows:
 
 ```python
-estimator = KMeans(3, trainer_params=dict(num_nodes=4, accelerator='gpu', devices=0))
+estimator = KMeans(3, trainer_params=dict(num_nodes=4, accelerator='gpu', devices=1))
 ```
 
 In fact, **you do not need to change anything else in your code**.
