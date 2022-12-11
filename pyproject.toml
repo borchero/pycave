@@ -15,7 +15,7 @@ version = "0.0.0"
 [tool.poetry.dependencies]
 lightkit = "^0.4.4"
 numpy = "^1.20.3"
-python = ">=3.8,<3.10"
+python = ">=3.8,<3.11"
 pytorch-lightning = "^1.6.0"
 torch = "^1.8.0"
 torchmetrics = "^0.5.1,<0.6.0"
