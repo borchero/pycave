@@ -23,6 +23,8 @@ jobs:
         run: poetry install --only main,docs
       - name: Fix Disutils
         run: poetry run pip install setuptools==59.5.0
+      - name: Check Spelling
+        run: poetry run sphinx-build -W -b spelling docs build
       - name: Generate HTML
         run: poetry run sphinx-build -W -b html docs build
       - name: Store Artifacts

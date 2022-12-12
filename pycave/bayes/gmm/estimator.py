@@ -23,11 +23,11 @@ class GaussianMixture(
     PredictorMixin[TensorLike, torch.Tensor],
 ):
     """
-    Probabilistic model assuming that data is generated from a mixture of Gaussians. The mixture is
-    assumed to be composed of a fixed number of components with individual means and covariances.
-    More information on Gaussian mixture models (GMMs) is available on `Wikipedia.
+    Probabilistic model assuming that data is generated from a mixture of Gaussians.
 
-    <https://en.wikipedia.org/wiki/Mixture_model>`_.
+    The mixture is assumed to be composed of a fixed number of components with individual means
+    and covariances. More information on Gaussian mixture models (GMMs) is available on
+    `Wikipedia <https://en.wikipedia.org/wiki/Mixture_model>`_.
 
     See also:
         .. currentmodule:: pycave.bayes.gmm
