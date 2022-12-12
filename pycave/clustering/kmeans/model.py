@@ -22,8 +22,9 @@ class KMeansModelConfig:
 
 class KMeansModel(Configurable[KMeansModelConfig], nn.Module):
     """
-    PyTorch module for the K-Means model. The centroids managed by this model are non-trainable
-    parameters.
+    PyTorch module for the K-Means model.
+
+    The centroids managed by this model are non-trainable parameters.
     """
 
     def __init__(self, config: KMeansModelConfig):
@@ -42,8 +43,9 @@ class KMeansModel(Configurable[KMeansModelConfig], nn.Module):
     @jit.unused
     def reset_parameters(self) -> None:
         """
-        Resets the parameters of the KMeans model. It samples all cluster centers from a standard
-        Normal.
+        Resets the parameters of the KMeans model.
+
+        It samples all cluster centers from a standard Normal.
         """
         nn.init.normal_(self.centroids)
 

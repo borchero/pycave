@@ -14,7 +14,7 @@ class StateCountAggregator(Metric):
         num_states: int,
         symmetric: bool,
         *,
-        dist_sync_fn: Optional[Callable[[Any], Any]] = None
+        dist_sync_fn: Optional[Callable[[Any], Any]] = None,
     ):
         super().__init__(dist_sync_fn=dist_sync_fn)  # type: ignore
 

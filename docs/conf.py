@@ -67,27 +67,3 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "pytorch_lightning": ("https://pytorch-lightning.readthedocs.io/en/stable/", None),
 }
-
-# -------------------------------------------------------------------------------------------------
-# OVERWRITES
-
-import inspect
-import sphinx_autodoc_typehints  # type: ignore
-
-qualname_overrides = {
-    "torch.nn.modules.module.Module": "torch.nn.Module",
-}
-
-format_annotation_orig = sphinx_autodoc_typehints.format_annotation
-
-
-def format_annotation(annotation: Any, *args: Any, **kwargs: Any):
-    if inspect.isclass(annotation):
-        full_name = f"{annotation.__module__}.{annotation.__qualname__}"
-        override = qualname_overrides.get(full_name)
-        if override is not None:
-            return f":py:class:`~{override}`"
-    return format_annotation_orig(annotation, *args, **kwargs)
-
-
-sphinx_autodoc_typehints.format_annotation = format_annotation

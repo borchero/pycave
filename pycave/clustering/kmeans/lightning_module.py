@@ -103,8 +103,10 @@ class KMeansLightningModule(NonparametricLightningModule):
 
 class KmeansRandomInitLightningModule(NonparametricLightningModule):
     """
-    Lightning module for initializing K-Means centroids randomly. Within the first epoch, all
-    items are sampled. Thus, this module should only be trained for a single epoch.
+    Lightning module for initializing K-Means centroids randomly.
+
+    Within the first epoch, all items are sampled. Thus, this module should only be trained for a
+    single epoch.
     """
 
     def __init__(self, model: KMeansModel):
@@ -262,8 +264,9 @@ class KmeansPlusPlusInitLightningModule(NonparametricLightningModule):
 
 class FeatureVarianceLightningModule(NonparametricLightningModule):
     """
-    Lightning module for computing the average variance of a dataset's features. In the first
-    epoch, it computes the features' means, then it can compute their variances.
+    Lightning module for computing the average variance of a dataset's features.
+
+    In the first epoch, it computes the features' means, then it can compute their variances.
     """
 
     def __init__(self, variances: torch.Tensor):

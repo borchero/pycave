@@ -23,8 +23,8 @@ def covariance_shape(
     num_components: int, num_features: int, covariance_type: CovarianceType
 ) -> torch.Size:
     """
-    Returns the expected shape of the covariance matrix for the given number of components with
-    the provided number of features based on the covariance type.
+    Returns the expected shape of the covariance matrix for the given number of components with the
+    provided number of features based on the covariance type.
 
     Args:
         num_components: The number of Normal distributions to describe with the covariance.
