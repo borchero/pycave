@@ -10,7 +10,7 @@ class StateCountAggregator(Metric):
     """
 
     full_state_update = False
-    
+
     def __init__(
         self,
         num_states: int,

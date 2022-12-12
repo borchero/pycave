@@ -52,7 +52,7 @@ class UniformSampler(Metric):
     """
 
     full_state_update = False
-    
+
     def __init__(
         self,
         num_choices: int,

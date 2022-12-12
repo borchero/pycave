@@ -86,8 +86,8 @@ class. It's
 [**init**](https://pytorch-lightning.readthedocs.io/en/latest/api/pytorch_lightning.trainer.trainer.html#pytorch_lightning.trainer.trainer.Trainer.__init__)
 method provides various configuration options.
 
-If you want to run K-Means with a GPU, you can pass the options `accelerator='gpu'` and `devices=1` to the estimator's
-initializer:
+If you want to run K-Means with a GPU, you can pass the options `accelerator='gpu'` and `devices=1`
+to the estimator's initializer:
 
 ```python
 estimator = KMeans(3, trainer_params=dict(accelerator='gpu', devices=1))
