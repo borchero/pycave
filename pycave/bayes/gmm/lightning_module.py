@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import List, Tuple
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning.callbacks import EarlyStopping
@@ -68,7 +67,7 @@ class GaussianMixtureLightningModule(NonparametricLightningModule):
         # Initialize metrics
         self.metric_nll = MeanMetric(dist_sync_fn=self.all_gather)
 
-    def configure_callbacks(self) -> List[pl.Callback]:
+    def configure_callbacks(self) -> list[pl.Callback]:
         if self.convergence_tolerance == 0:
             return []
         early_stopping = EarlyStopping(
@@ -134,7 +133,7 @@ class GaussianMixtureLightningModule(NonparametricLightningModule):
 
     def predict_step(
         self, batch: torch.Tensor, batch_idx: int
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         log_responsibilities, log_probs = self.model.forward(batch)
         return log_responsibilities.exp(), -log_probs
 
@@ -226,8 +225,9 @@ class GaussianMixtureKmeansInitLightningModule(NonparametricLightningModule):
 class GaussianMixtureRandomInitLightningModule(NonparametricLightningModule):
     """
     Lightning module for initializing a Gaussian mixture randomly or using the assignments for
-    arbitrary means that were not found via K-means. For batch training, this requires two epochs,
-    otherwise, it requires a single epoch.
+    arbitrary means that were not found via K-means.
+
+    For batch training, this requires two epochs, otherwise, it requires a single epoch.
     """
 
     def __init__(

@@ -232,7 +232,7 @@ def test_sample_normal_spherical():
     samples = sample_normal(n, mean, precisions, "spherical")
 
     sample_mean = samples.mean(0)
-    sample_covar = (samples - sample_mean).t().matmul((samples - sample_mean)) / n
+    sample_covar = (samples - sample_mean).t().matmul(samples - sample_mean) / n
 
     assert torch.allclose(mean, sample_mean, atol=1e-2)
     assert torch.allclose(target_covar, sample_covar, atol=1e-2)
@@ -249,7 +249,7 @@ def test_sample_normal_diag():
     samples = sample_normal(n, mean, precisions, "diag")
 
     sample_mean = samples.mean(0)
-    sample_covar = (samples - sample_mean).t().matmul((samples - sample_mean)) / n
+    sample_covar = (samples - sample_mean).t().matmul(samples - sample_mean) / n
 
     assert torch.allclose(mean, sample_mean, atol=1e-2)
     assert torch.allclose(target_covar, sample_covar, atol=1e-2)
@@ -265,7 +265,7 @@ def test_sample_normal_full():
     samples = sample_normal(n, mean, precisions, "full")
 
     sample_mean = samples.mean(0)
-    sample_covar = (samples - sample_mean).t().matmul((samples - sample_mean)) / n
+    sample_covar = (samples - sample_mean).t().matmul(samples - sample_mean) / n
 
     assert torch.allclose(mean, sample_mean, atol=1e-2)
     assert torch.allclose(covar, sample_covar, atol=1e-2)

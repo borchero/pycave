@@ -1,6 +1,6 @@
 from __future__ import annotations
 import logging
-from typing import Any, cast, Dict, List, Optional
+from typing import Any, cast, List
 import torch
 from lightkit import ConfigurableBaseEstimator
 from lightkit.data import collate_tensor, DataLoader, dataset_from_tensors, TensorLike
@@ -51,8 +51,8 @@ class KMeans(
         *,
         init_strategy: KMeansInitStrategy = "kmeans++",
         convergence_tolerance: float = 1e-4,
-        batch_size: Optional[int] = None,
-        trainer_params: Optional[Dict[str, Any]] = None,
+        batch_size: int | None = None,
+        trainer_params: dict[str, Any] | None = None,
     ):
         """
         Args:

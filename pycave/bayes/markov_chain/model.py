@@ -23,8 +23,10 @@ class MarkovChainModelConfig:
 
 class MarkovChainModel(Configurable[MarkovChainModelConfig], nn.Module):
     """
-    PyTorch module for a Markov chain. The initial state probabilities as well as the transition
-    probabilities are non-trainable parameters.
+    PyTorch module for a Markov chain.
+
+    The initial state probabilities as well as the transition probabilities are non-trainable
+    parameters.
     """
 
     def __init__(self, config: MarkovChainModelConfig):
@@ -48,8 +50,9 @@ class MarkovChainModel(Configurable[MarkovChainModelConfig], nn.Module):
     @jit.unused
     def reset_parameters(self) -> None:
         """
-        Resets the parameters of the Markov model. Initial and transition probabilities are sampled
-        uniformly.
+        Resets the parameters of the Markov model.
+
+        Initial and transition probabilities are sampled uniformly.
         """
         nn.init.uniform_(self.initial_probs)
         self.initial_probs.div_(self.initial_probs.sum())
@@ -64,7 +67,7 @@ class MarkovChainModel(Configurable[MarkovChainModelConfig], nn.Module):
 
     @overload
     @_jit._overload_method  # pylint: disable=protected-access
-    def forward(self, sequences: PackedSequence) -> torch.Tensor:
+    def forward(self, sequences: PackedSequence) -> torch.Tensor:  # type: ignore
         ...
 
     def forward(self, sequences) -> torch.Tensor:  # type: ignore

@@ -1,6 +1,6 @@
 from __future__ import annotations
 import logging
-from typing import Any, cast, Dict, List, Optional
+from typing import Any, cast, List
 import numpy as np
 import torch
 from lightkit import ConfigurableBaseEstimator
@@ -35,11 +35,11 @@ class MarkovChain(ConfigurableBaseEstimator[MarkovChainModel]):  # type: ignore
 
     def __init__(
         self,
-        num_states: Optional[int] = None,
+        num_states: int | None = None,
         *,
         symmetric: bool = False,
-        batch_size: Optional[int] = None,
-        trainer_params: Optional[Dict[str, Any]] = None,
+        batch_size: int | None = None,
+        trainer_params: dict[str, Any] | None = None,
     ):
         """
         Args:

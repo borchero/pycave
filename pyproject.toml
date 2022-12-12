@@ -1,5 +1,5 @@
 [tool.poetry]
-authors = ["Oliver Borchert <borchero@icloud.com>"]
+authors = ["Oliver Borchert <me@borchero.com>"]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
@@ -13,29 +13,38 @@ repository = "https://github.com/borchero/pycave"
 version = "0.0.0"
 
 [tool.poetry.dependencies]
-lightkit = "^0.4.4"
+lightkit = "^0.5.0"
 numpy = "^1.20.3"
-python = ">=3.8,<3.10"
-pytorch-lightning = ">=1.6.0"
+python = ">=3.8,<3.11"
+pytorch-lightning = "^1.6.0"
 torch = "^1.8.0"
-torchmetrics = ">=0.6.0"
+torchmetrics = "^0.6.0"
 
-[tool.poetry.dev-dependencies]
-Sphinx = "^4.0.2"
-black = "^22.3.0"
-flaky = "^3.7.0"
-isort = "^5.8.0"
-jupyter = "^1.0.0"
+[tool.poetry.group.pre-commit.dependencies]
+black = "^22.12.0"
+docformatter = "^1.5.0"
+isort = "^5.10.1"
+mypy = "^0.991"
+pylint = "^2.12.2"
+pyupgrade = "^3.3.1"
+
+[tool.poetry.group.docs.dependencies]
+Sphinx = "^5.0.0"
 pydata-sphinx-theme = "^0.7.2"
-pylint = "^2.8.3"
-pytest = "^6.2.4"
-pytest-benchmark = "^3.4.1"
 scanpydoc = "^0.7.1"
-scikit-learn = "^0.24.2"
 sphinx-autodoc-typehints = "^1.12.0"
 sphinx-automodapi = "^0.13"
 sphinx-copybutton = "^0.3.3"
 sphinxcontrib-spelling = "^7.2.1"
+
+[tool.poetry.group.testing.dependencies]
+flaky = "^3.7.0"
+pytest = "^6.2.4"
+pytest-benchmark = "^3.4.1"
+scikit-learn = "^0.24.2"
+
+[tool.poetry.group.dev.dependencies]
+jupyter = "^1.0.0"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
@@ -47,7 +56,6 @@ disable = [
   "duplicate-code",
   "missing-module-docstring",
   "invalid-name",
-  "no-self-use",
   "too-few-public-methods",
   "too-many-ancestors",
   "too-many-arguments",
@@ -61,16 +69,9 @@ generated-members = [
   "torch.*",
 ]
 
-[tool.pyright]
-reportIncompatibleMethodOverride = false 
-reportPrivateImportUsage = false # can be removed after Pylance v2021.10.1 has been released
-reportUnknownArgumentType = false 
-reportUnknownMemberType = false 
-reportUnknownVariableType = false 
-typeCheckingMode = "strict" 
-
 [tool.black]
 line-length = 99
+target-version = ["py38", "py39", "py310"]
 
 [tool.isort]
 force_alphabetical_sort_within_sections = true
@@ -80,6 +81,13 @@ line_length = 99
 lines_between_sections = 0
 profile = "black"
 skip_gitignore = true
+
+[tool.docformatter]
+make-summary-multi-line = true
+pre-summary-newline = true
+recursive = true
+wrap-descriptions = 99
+wrap-summaries = 99
 
 [tool.pytest.ini_options]
 filterwarnings = [
