@@ -27,8 +27,6 @@ extensions = [
     "sphinx_automodapi.smart_resolver",
     "sphinx_copybutton",
 ]
-if os.uname().machine != "arm64":
-    extensions.append("sphinxcontrib.spelling")
 templates_path = ["_templates"]
 
 # -------------------------------------------------------------------------------------------------
