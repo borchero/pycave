@@ -1,6 +1,6 @@
 from __future__ import annotations
 import logging
-from typing import Any, cast, Dict, List, Optional, Tuple
+from typing import Any, cast, List, Tuple
 import torch
 from lightkit import ConfigurableBaseEstimator
 from lightkit.data import collate_tensor, DataLoader, dataset_from_tensors, TensorLike
@@ -25,8 +25,9 @@ class GaussianMixture(
     """
     Probabilistic model assuming that data is generated from a mixture of Gaussians. The mixture is
     assumed to be composed of a fixed number of components with individual means and covariances.
-    More information on Gaussian mixture models (GMMs) is available on
-    `Wikipedia <https://en.wikipedia.org/wiki/Mixture_model>`_.
+    More information on Gaussian mixture models (GMMs) is available on `Wikipedia.
+
+    <https://en.wikipedia.org/wiki/Mixture_model>`_.
 
     See also:
         .. currentmodule:: pycave.bayes.gmm
@@ -53,11 +54,11 @@ class GaussianMixture(
         *,
         covariance_type: CovarianceType = "diag",
         init_strategy: GaussianMixtureInitStrategy = "kmeans",
-        init_means: Optional[torch.Tensor] = None,
+        init_means: torch.Tensor | None = None,
         convergence_tolerance: float = 1e-3,
         covariance_regularization: float = 1e-6,
-        batch_size: Optional[int] = None,
-        trainer_params: Optional[Dict[str, Any]] = None,
+        batch_size: int | None = None,
+        trainer_params: dict[str, Any] | None = None,
     ):
         """
         Args:

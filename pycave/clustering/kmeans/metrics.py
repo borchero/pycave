@@ -41,10 +41,12 @@ class CentroidAggregator(Metric):
 class UniformSampler(Metric):
     """
     The uniform sampler randomly samples a specified number of datapoints uniformly from all
-    datapoints. The idea is the following: sample the number of choices from each batch and
-    track the number of datapoints that was already sampled from. When sampling from the union of
-    existing choices and a new batch, more weight is put on the existing choices (according to the
-    number of datapoints they were already sampled from).
+    datapoints.
+
+    The idea is the following: sample the number of choices from each batch and track the number of
+    datapoints that was already sampled from. When sampling from the union of existing choices and
+    a new batch, more weight is put on the existing choices (according to the number of datapoints
+    they were already sampled from).
     """
 
     def __init__(
@@ -100,9 +102,11 @@ class UniformSampler(Metric):
 class DistanceSampler(Metric):
     """
     The distance sampler may be used for kmeans++ initialization, to iteratively select centroids
-    according to their squared distances to existing choices. Computing the distance to existing
-    choices is not part of this sampler. Within each "cycle", it computes a given number of
-    candidates. Candidates are sampled independently and may be duplicates.
+    according to their squared distances to existing choices.
+
+    Computing the distance to existing choices is not part of this sampler. Within each "cycle", it
+    computes a given number of candidates. Candidates are sampled independently and may be
+    duplicates.
     """
 
     def __init__(

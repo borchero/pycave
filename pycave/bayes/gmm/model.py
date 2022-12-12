@@ -27,8 +27,10 @@ class GaussianMixtureModelConfig:
 
 class GaussianMixtureModel(Configurable[GaussianMixtureModelConfig], nn.Module):
     """
-    PyTorch module for a Gaussian mixture model. Covariances are represented via their Cholesky
-    decomposition for computational efficiency. The model does not have trainable parameters.
+    PyTorch module for a Gaussian mixture model.
+
+    Covariances are represented via their Cholesky decomposition for computational efficiency. The
+    model does not have trainable parameters.
     """
 
     #: The probabilities of each component, buffer of shape ``[num_components]``.
@@ -58,12 +60,13 @@ class GaussianMixtureModel(Configurable[GaussianMixtureModelConfig], nn.Module):
 
         self.reset_parameters()
 
-    @jit.unused
+    @jit.unused  # type: ignore
     @property
     def covariances(self) -> torch.Tensor:
         """
-        The covariance matrices learnt for the GMM's components. The shape of the tensor depends on
-        the covariance type, see :class:`CovarianceType`.
+        The covariance matrices learnt for the GMM's components.
+
+        The shape of the tensor depends on the covariance type, see :class:`CovarianceType`.
         """
         return covariance(self.precisions_cholesky, self.covariance_type)  # type: ignore
 
