@@ -9,6 +9,8 @@ class StateCountAggregator(Metric):
     The state count aggregator aggregates initial states and transitions between states.
     """
 
+    full_state_update = False
+
     def __init__(
         self,
         num_states: int,

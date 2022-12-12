@@ -1,6 +1,6 @@
 import torch
 from torch.nn.utils.rnn import PackedSequence
-from torchmetrics import AverageMeter
+from torchmetrics import MeanMetric
 from pycave.bayes.markov_chain.metrics import StateCountAggregator
 from pycave.utils import NonparametricLightningModule
 from .model import MarkovChainModel
@@ -27,7 +27,7 @@ class MarkovChainLightningModule(NonparametricLightningModule):
             symmetric=self.symmetric,
             dist_sync_fn=self.all_gather,
         )
-        self.metric_nll = AverageMeter(dist_sync_fn=self.all_gather)
+        self.metric_nll = MeanMetric(dist_sync_fn=self.all_gather)
 
     def on_train_epoch_start(self) -> None:
         self.aggregator.reset()

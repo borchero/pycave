@@ -120,6 +120,6 @@ def test_pycave_gpu(
         init_strategy=init_strategy,
         batch_size=batch_size,
         convergence_tolerance=0,
-        trainer_params=dict(gpus=1, max_epochs=100),
+        trainer_params=dict(max_epochs=100, accelerator="gpu", devices=1),
     )
     benchmark(estimator.fit, data)

@@ -78,19 +78,19 @@ For GPU- and multi-node training, PyCave leverages PyTorch Lightning. The hardwa
 runs on is determined by the :class:`pytorch_lightning.trainer.Trainer` class. It's
 :meth:`~pytorch_lightning.trainer.Trainer.__init__` method provides various configuration options.
 
-If you want to run K-Means with a GPU, you can pass the option ``gpus=1`` to the estimator's
+If you want to run K-Means with a GPU, you can pass the option ``accelerator='gpu'`` and ``devices=1`` to the estimator's
 initializer:
 
 .. code-block:: python
 
-    estimator = KMeans(3, trainer_params=dict(gpus=1))
+    estimator = KMeans(3, trainer_params=dict(accelerator='gpu', devices=1))
 
 Similarly, if you want to train on 4 nodes simultaneously where each node has one GPU available,
 you can specify this as follows:
 
 .. code-block:: python
 
-    estimator = KMeans(3, trainer_params=dict(num_nodes=4, gpus=1))
+    estimator = KMeans(3, trainer_params=dict(num_nodes=4, accelerator='gpu', 1))
 
 In fact, **you do not need to change anything else in your code**.
 

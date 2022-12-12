@@ -9,6 +9,8 @@ class PriorAggregator(Metric):
     The prior aggregator aggregates component probabilities over batches and process.
     """
 
+    full_state_update = False
+
     def __init__(
         self,
         num_components: int,
@@ -32,6 +34,8 @@ class MeanAggregator(Metric):
     """
     The mean aggregator aggregates component means over batches and processes.
     """
+
+    full_state_update = False
 
     def __init__(
         self,
@@ -62,6 +66,8 @@ class CovarianceAggregator(Metric):
     """
     The covariance aggregator aggregates component covariances over batches and processes.
     """
+
+    full_state_update = False
 
     def __init__(
         self,
