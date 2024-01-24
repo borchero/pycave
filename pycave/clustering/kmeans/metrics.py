@@ -31,7 +31,7 @@ class CentroidAggregator(Metric):
 
     def update(self, data: torch.Tensor, assignments: torch.Tensor) -> None:
         indices = assignments.unsqueeze(1).expand(-1, self.num_features)
-        self.centroids.scatter_add_(0, indices, data)
+        self.centroids.scatter_add_(0, indices, data.float())
 
         counts = assignments.bincount(minlength=self.num_clusters).float()
         self.cluster_counts.add_(counts)
@@ -149,7 +149,7 @@ class DistanceSampler(Metric):
         # Then, we sample from the data `num_choices` times and replace if needed
         choices = (squared_distances + eps).multinomial(self.num_choices, replacement=True)
         self.choices.masked_scatter_(
-            use_choice_from_data.unsqueeze(1), data[choices[use_choice_from_data]]
+            use_choice_from_data.unsqueeze(1), data[choices[use_choice_from_data]].float()
         )
 
         # In any case, the cumulative distances are updated
