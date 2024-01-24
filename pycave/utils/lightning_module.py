@@ -24,7 +24,7 @@ class NonparametricLightningModule(pl.LightningModule, ABC):
     def training_step(self, batch: torch.Tensor, batch_idx: int) -> None:
         self.nonparametric_training_step(batch, batch_idx)
 
-    def training_epoch_end(self, outputs: List[torch.Tensor]) -> None:
+    def on_training_epoch_end(self, outputs: List[torch.Tensor]) -> None:
         self.nonparametric_training_epoch_end()
 
     @abstractmethod
