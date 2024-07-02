@@ -148,6 +148,7 @@ class DistanceSampler(Metric):
 
         # Then, we sample from the data `num_choices` times and replace if needed
         choices = (squared_distances + eps).multinomial(self.num_choices, replacement=True)
+        self.choices = self.choices.to(data.dtype)
         self.choices.masked_scatter_(
             use_choice_from_data.unsqueeze(1), data[choices[use_choice_from_data]]
         )
