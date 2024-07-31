@@ -61,7 +61,7 @@ def test_sklearn(
         (1000000, 100000, 64, 64, "random"),
     ],
 )
-def test_pycave(
+def test_torchgmm(
     benchmark: BenchmarkFixture,
     num_datapoints: int,
     batch_size: Optional[int],
@@ -101,7 +101,7 @@ def test_pycave(
         (10000000, 1000000, 128, 128, "random"),
     ],
 )
-def test_pycave_gpu(
+def test_torchgmm_gpu(
     benchmark: BenchmarkFixture,
     num_datapoints: int,
     batch_size: Optional[int],

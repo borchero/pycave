@@ -7,7 +7,7 @@ Strategy for initializing the parameters of a Gaussian mixture model.
 
 - **random**: Samples responsibilities of datapoints at random and subsequently initializes means
   and covariances from these.
-- **kmeans**: Runs K-Means via :class:`pycave.clustering.KMeans` and uses the centroids as the
+- **kmeans**: Runs K-Means via :class:`torchgmm.clustering.KMeans` and uses the centroids as the
   initial component means. For computing the covariances, responsibilities are given as the
   one-hot cluster assignments.
 - **kmeans++**: Runs only the K-Means++ initialization procedure to sample means in a smart

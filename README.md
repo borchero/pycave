@@ -1,26 +1,24 @@
-# PyCave
+# TorchGMM
 
-![PyPi](https://img.shields.io/pypi/v/pycave?label=version)
-![License](https://img.shields.io/pypi/l/pycave)
+<!-- ![PyPi](https://img.shields.io/pypi/v/torchgmm?label=version)
+![License](https://img.shields.io/pypi/l/torchgmm) -->
 
-PyCave allows you to run traditional machine learning models on CPU, GPU, and even on multiple
-nodes. All models are implemented in [PyTorch](https://pytorch.org/) and provide an `Estimator` API
+TorchGMM allows to run Gaussian Mixture Models on single or multiple CPUs/GPUs.
+The repository is a fork from [PyCave](https://github.com/borchero/pycave) and [LightKit](https://github.com/borchero/lightkit), two amazing packages developed by [Olivier Borchert](https://github.com/borchero) that are not being maintained anymore.
+While PyCave implements additional models such as Markov Chains, TorchGMM focuses only on Gaussian Mixture Models.
+
+The models are implemented in [PyTorch](https://pytorch.org/) and [PyTorch Lightning](https://lightning.ai/docs/pytorch/stable/), and provide an `Estimator` API
 that is fully compatible with [scikit-learn](https://scikit-learn.org/stable/).
 
-For Gaussian mixture model, PyCave allows for 100x speed ups when using a GPU and enables to train
+For Gaussian mixture model, TorchGMM allows for 100x speed ups when using a GPU and enables to train
 on markedly larger datasets via mini-batch training. The full suite of benchmarks run to compare
-PyCave models against scikit-learn models is available on the
+TorchGMM models against scikit-learn models is available on the
 [documentation website](https://pycave.borchero.com/sites/benchmark.html).
-
-_PyCave version 3 is a complete rewrite of PyCave which is tested much more rigorously, depends on
-well-maintained libraries and is tuned for better performance. While you are, thus, highly
-encouraged to upgrade, refer to [pycave-v2.borchero.com](https://pycave-v2.borchero.com) for
-documentation on PyCave 2._
 
 ## Features
 
 - Support for GPU and multi-node training by implementing models in PyTorch and relying on
-  [PyTorch Lightning](https://www.pytorchlightning.ai/)
+  [PyTorch Lightning](https://lightning.ai/docs/pytorch/stable/)
 - Mini-batch training for all models such that they can be used on huge datasets
 - Well-structured implementation of models
 
@@ -31,21 +29,21 @@ documentation on PyCave 2._
 
 ## Installation
 
-PyCave is available via `pip`:
+TorchGMM is available via `pip`:
 
 ```bash
-pip install pycave
+pip install torchgmm
 ```
 
 If you are using [Poetry](https://python-poetry.org/):
 
 ```bash
-poetry add pycave
+poetry add torchgmm
 ```
 
 ## Usage
 
-If you've ever used scikit-learn, you'll feel right at home when using PyCave. First, let's create
+If you've ever used scikit-learn, you'll feel right at home when using TorchGMM. First, let's create
 some artificial data to work with:
 
 ```python
@@ -62,7 +60,7 @@ This dataset consists of three clusters with 8-dimensional datapoints. If you wa
 model, to find the clusters' centroids, it's as easy as:
 
 ```python
-from pycave.clustering import KMeans
+from torchgmm.clustering import KMeans
 
 estimator = KMeans(3)
 estimator.fit(X)
@@ -79,7 +77,7 @@ and which methods are available.
 
 ### GPU and Multi-Node training
 
-For GPU- and multi-node training, PyCave leverages PyTorch Lightning. The hardware that training
+For GPU- and multi-node training, TorchGMM leverages PyTorch Lightning. The hardware that training
 runs on is determined by the
 [Trainer](https://pytorch-lightning.readthedocs.io/en/latest/api/pytorch_lightning.trainer.trainer.html#pytorch_lightning.trainer.trainer.Trainer)
 class. It's
@@ -104,12 +102,11 @@ In fact, **you do not need to change anything else in your code**.
 
 ### Implemented Models
 
-Currently, PyCave implements three different models:
+Currently, TorchGMM implements two different models:
 
 - [GaussianMixture](https://pycave.borchero.com/sites/generated/bayes/gmm/pycave.bayes.GaussianMixture.html)
-- [MarkovChain](https://pycave.borchero.com/sites/generated/bayes/markov_chain/pycave.bayes.MarkovChain.html)
 - [K-Means](https://pycave.borchero.com/sites/generated/clustering/kmeans/pycave.clustering.KMeans.html)
 
 ## License
 
-PyCave is licensed under the [MIT License](https://github.com/borchero/pycave/blob/main/LICENSE).
+TorchGMM is licensed under the [MIT License](https://github.com/marcovarrone/torchgmm/blob/main/LICENSE).
