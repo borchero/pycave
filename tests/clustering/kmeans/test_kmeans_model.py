@@ -1,7 +1,7 @@
 # pylint: disable=missing-function-docstring
 import torch
 from torch import jit
-from pycave.clustering.kmeans import KMeansModel, KMeansModelConfig
+from torchgmm.clustering.kmeans import KMeansModel, KMeansModelConfig
 
 
 def test_compile():

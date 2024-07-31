@@ -1,8 +1,8 @@
 # pylint: disable=missing-function-docstring
 from typing import Tuple
 import torch
-from pycave.bayes.core import CovarianceType
-from pycave.bayes.gmm import GaussianMixtureModel, GaussianMixtureModelConfig
+from torchgmm.bayes.core import CovarianceType
+from torchgmm.bayes.gmm import GaussianMixtureModel, GaussianMixtureModelConfig
 
 
 def sample_gmm(

@@ -4,8 +4,8 @@ import torch
 from sklearn.mixture._gaussian_mixture import _compute_log_det_cholesky  # type: ignore
 from sklearn.mixture._gaussian_mixture import _compute_precision_cholesky  # type: ignore
 from torch.distributions import MultivariateNormal
-from pycave.bayes.core import cholesky_precision, covariance, log_normal, sample_normal
-from pycave.bayes.core._jit import _cholesky_logdet  # type: ignore
+from torchgmm.bayes.core import cholesky_precision, covariance, log_normal, sample_normal
+from torchgmm.bayes.core._jit import _cholesky_logdet  # type: ignore
 from tests._data.normal import (
     sample_data,
     sample_diag_covars,

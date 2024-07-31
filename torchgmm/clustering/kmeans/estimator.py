@@ -27,7 +27,7 @@ class KMeans(
     clustering is available on `Wikipedia <https://en.wikipedia.org/wiki/K-means_clustering>`_.
 
     See also:
-        .. currentmodule:: pycave.clustering.kmeans
+        .. currentmodule:: torchgmm.clustering.kmeans
         .. autosummary::
             :nosignatures:
             :template: classes/pytorch_module.rst
@@ -65,7 +65,7 @@ class KMeans(
                 data will be used as a single batch. Set this if the full data does not fit into
                 memory.
             trainer_params: Initialization parameters to use when initializing a PyTorch Lightning
-                trainer. By default, it disables various stdout logs unless PyCave is configured to
+                trainer. By default, it disables various stdout logs unless TorchGMM is configured to
                 do verbose logging. Checkpointing and logging are disabled regardless of the log
                 level. This estimator further sets the following overridable defaults:
 

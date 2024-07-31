@@ -5,7 +5,7 @@ from pytest_benchmark.fixture import BenchmarkFixture  # type: ignore
 from sklearn.mixture._gaussian_mixture import _compute_precision_cholesky  # type: ignore
 from sklearn.mixture._gaussian_mixture import _estimate_log_gaussian_prob  # type: ignore
 from torch.distributions import MultivariateNormal
-from pycave.bayes.core import cholesky_precision, log_normal
+from torchgmm.bayes.core import cholesky_precision, log_normal
 
 
 def test_log_normal_spherical(benchmark: BenchmarkFixture):

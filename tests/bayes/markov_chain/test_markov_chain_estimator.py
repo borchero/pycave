@@ -3,7 +3,7 @@ import math
 from typing import Tuple
 import pytest
 import torch
-from pycave.bayes import MarkovChain
+from torchgmm.bayes import MarkovChain
 
 
 def test_fit_automatic_config():

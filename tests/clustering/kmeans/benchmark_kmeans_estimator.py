@@ -5,8 +5,8 @@ import pytorch_lightning as pl
 import torch
 from pytest_benchmark.fixture import BenchmarkFixture  # type: ignore
 from sklearn.cluster import KMeans as SklearnKMeans  # type: ignore
-from pycave.clustering import KMeans
-from pycave.clustering.kmeans.types import KMeansInitStrategy
+from torchgmm.clustering import KMeans
+from torchgmm.clustering.kmeans.types import KMeansInitStrategy
 from tests._data.gmm import sample_gmm
 
 
@@ -61,7 +61,7 @@ def test_sklearn(
         (1000000, 100000, 64, 64, "random"),
     ],
 )
-def test_pycave(
+def test_torchgmm(
     benchmark: BenchmarkFixture,
     num_datapoints: int,
     batch_size: Optional[int],
@@ -101,7 +101,7 @@ def test_pycave(
         (10000000, 1000000, 128, 128, "random"),
     ],
 )
-def test_pycave_gpu(
+def test_torchgmm_gpu(
     benchmark: BenchmarkFixture,
     num_datapoints: int,
     batch_size: Optional[int],

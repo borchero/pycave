@@ -5,8 +5,8 @@ import torch
 from lightkit import ConfigurableBaseEstimator
 from lightkit.data import collate_tensor, DataLoader, dataset_from_tensors, TensorLike
 from lightkit.estimator import PredictorMixin
-from pycave.bayes.core import CovarianceType
-from pycave.clustering import KMeans
+from torchgmm.bayes.core import CovarianceType
+from torchgmm.clustering import KMeans
 from .lightning_module import (
     GaussianMixtureKmeansInitLightningModule,
     GaussianMixtureLightningModule,
@@ -30,7 +30,7 @@ class GaussianMixture(
     `Wikipedia <https://en.wikipedia.org/wiki/Mixture_model>`_.
 
     See also:
-        .. currentmodule:: pycave.bayes.gmm
+        .. currentmodule:: torchgmm.bayes.gmm
         .. autosummary::
             :nosignatures:
             :template: classes/pytorch_module.rst
@@ -80,7 +80,7 @@ class GaussianMixture(
             num_workers: The number of workers to use for loading the data. Only used if a PyTorch
                 dataset is passed to :meth:`fit` or related methods.
             trainer_params: Initialization parameters to use when initializing a PyTorch Lightning
-                trainer. By default, it disables various stdout logs unless PyCave is configured to
+                trainer. By default, it disables various stdout logs unless TorchGMM is configured to
                 do verbose logging. Checkpointing and logging are disabled regardless of the log
                 level. This estimator further sets the following overridable defaults:
 

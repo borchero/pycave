@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from pytest_benchmark.fixture import BenchmarkFixture  # type: ignore
 from sklearn.mixture._gaussian_mixture import _compute_precision_cholesky  # type: ignore
-from pycave.bayes.core import cholesky_precision
+from torchgmm.bayes.core import cholesky_precision
 
 
 def test_cholesky_precision_spherical(benchmark: BenchmarkFixture):

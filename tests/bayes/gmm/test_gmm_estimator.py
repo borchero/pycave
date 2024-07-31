@@ -4,8 +4,8 @@ from typing import Optional
 import pytest
 import torch
 from sklearn.mixture import GaussianMixture as SklearnGaussianMixture  # type: ignore
-from pycave.bayes import GaussianMixture
-from pycave.bayes.core import CovarianceType
+from torchgmm.bayes import GaussianMixture
+from torchgmm.bayes.core import CovarianceType
 from tests._data.gmm import sample_gmm
 
 

@@ -4,7 +4,7 @@ from typing import Optional
 import pytest
 import torch
 from sklearn.cluster import KMeans as SklearnKMeans  # type: ignore
-from pycave.clustering import KMeans
+from torchgmm.clustering import KMeans
 from tests._data.gmm import sample_gmm
 
 

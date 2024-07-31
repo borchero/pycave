@@ -4,8 +4,8 @@ import numpy as np
 import torch
 from lightkit.nn import Configurable
 from torch import jit, nn
-from pycave.bayes.core import covariance, covariance_shape, CovarianceType
-from pycave.bayes.core._jit import jit_log_normal, jit_sample_normal
+from torchgmm.bayes.core import covariance, covariance_shape, CovarianceType
+from torchgmm.bayes.core._jit import jit_log_normal, jit_sample_normal
 
 
 @dataclass
