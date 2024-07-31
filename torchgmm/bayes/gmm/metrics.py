@@ -1,7 +1,7 @@
 from typing import Any, Callable, Optional
 import torch
 from torchmetrics import Metric
-from pycave.bayes.core import covariance_shape, CovarianceType
+from torchgmm.bayes.core import covariance_shape, CovarianceType
 
 
 class PriorAggregator(Metric):

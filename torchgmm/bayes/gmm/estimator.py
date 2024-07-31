@@ -5,8 +5,8 @@ import torch
 from lightkit import ConfigurableBaseEstimator
 from lightkit.data import collate_tensor, DataLoader, dataset_from_tensors, TensorLike
 from lightkit.estimator import PredictorMixin
-from pycave.bayes.core import CovarianceType
-from pycave.clustering import KMeans
+from torchgmm.bayes.core import CovarianceType
+from torchgmm.clustering import KMeans
 from .lightning_module import (
     GaussianMixtureKmeansInitLightningModule,
     GaussianMixtureLightningModule,

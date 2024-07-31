@@ -3,7 +3,7 @@ import math
 import torch
 from torch import jit
 from torch.nn.utils.rnn import pack_padded_sequence
-from pycave.bayes.markov_chain import MarkovChainModel, MarkovChainModelConfig
+from torchgmm.bayes.markov_chain import MarkovChainModel, MarkovChainModelConfig
 
 
 def test_compile():

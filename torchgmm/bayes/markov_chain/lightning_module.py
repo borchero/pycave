@@ -1,8 +1,8 @@
 import torch
 from torch.nn.utils.rnn import PackedSequence
 from torchmetrics import MeanMetric
-from pycave.bayes.markov_chain.metrics import StateCountAggregator
-from pycave.utils import NonparametricLightningModule
+from torchgmm.bayes.markov_chain.metrics import StateCountAggregator
+from torchgmm.utils import NonparametricLightningModule
 from .model import MarkovChainModel
 
 

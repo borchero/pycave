@@ -3,8 +3,8 @@ from typing import Any, Callable
 import numpy as np
 import sklearn.mixture._gaussian_mixture as skgmm  # type: ignore
 import torch
-from pycave.bayes.core import CovarianceType
-from pycave.bayes.gmm.metrics import CovarianceAggregator, MeanAggregator, PriorAggregator
+from torchgmm.bayes.core import CovarianceType
+from torchgmm.bayes.gmm.metrics import CovarianceAggregator, MeanAggregator, PriorAggregator
 
 
 def test_prior_aggregator():
