@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 import torch
 from torch import nn
 

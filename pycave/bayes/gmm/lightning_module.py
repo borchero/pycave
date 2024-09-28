@@ -1,7 +1,7 @@
 from __future__ import annotations
 import pytorch_lightning as pl
 import torch
-from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from torchmetrics import MeanMetric
 from pycave.bayes.core import cholesky_precision
 from pycave.utils import NonparametricLightningModule
