@@ -7,6 +7,7 @@ from lightkit import ConfigurableBaseEstimator
 from lightkit.data import DataLoader, dataset_from_tensors
 from torch.nn.utils.rnn import PackedSequence
 from torch.utils.data import Dataset
+from pytorch_lightning import Trainer
 from .lightning_module import MarkovChainLightningModule
 from .model import MarkovChainModel, MarkovChainModelConfig
 from .types import collate_sequences, collate_sequences_same_length, SequenceData
